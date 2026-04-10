@@ -1,0 +1,7 @@
+{
+    "id": "log_statistics",
+    "name": "Log Statistics",
+    "version": "2.0",
+    "description": "日志统计插件，分析日志分布",
+    "plugin_type": "CloudBMC"
+}

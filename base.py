@@ -6,171 +6,384 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Callable
 from enum import Enum
-from datetime import datetime
 
 
-class PluginCategory(Enum):
-    """插件类别枚举。"""
-    PARSER = "parser"           # 日志解析插件
-    ANALYZER = "analyzer"       # 日志分析插件
-    DETECTOR = "detector"       # 问题检测插件
-    REPORTER = "reporter"       # 报告生成插件
-    OTHER = "other"             # 其他插件
+class Severity(Enum):
+    """严重程度枚举。"""
+    INFO = "info"
+    WARNING = "warning"
+    ERROR = "error"
+    CRITICAL = "critical"
+    SUCCESS = "success"
+
+
+class SectionType(Enum):
+    """展示区块类型枚举。"""
+    STATS = "stats"
+    TABLE = "table"
+    TIMELINE = "timeline"
+    CARDS = "cards"
+    CHART = "chart"
+    SEARCH_BOX = "search_box"
+    RAW = "raw"
+
+
+# ========== Meta 元数据 ==========
+
+@dataclass
+class ResultMeta:
+    """插件结果元数据。"""
+    plugin_id: str
+    plugin_name: str
+    version: str
+    analysis_time: str
+    log_file: str
+    plugin_type: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        """转换为字典。"""
+        return {
+            'plugin_id': self.plugin_id,
+            'plugin_name': self.plugin_name,
+            'version': self.version,
+            'analysis_time': self.analysis_time,
+            'log_file': self.log_file,
+            'plugin_type': self.plugin_type
+        }
+
+
+# ========== Section 数据类 ==========
+
+@dataclass
+class StatsItem:
+    """统计项。"""
+    label: str
+    value: Any
+    unit: str = ""
+    severity: str = "info"
+    icon: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            'label': self.label,
+            'value': self.value,
+            'unit': self.unit,
+            'severity': self.severity,
+            'icon': self.icon
+        }
 
 
 @dataclass
-class PluginInfo:
-    """插件信息元数据。"""
-    id: str
-    name: str
-    version: str
-    description: str
-    category: PluginCategory = PluginCategory.OTHER
-    author: str = ""
-    enabled: bool = True
-    tags: List[str] = field(default_factory=list)
-    capabilities: List[str] = field(default_factory=list)
-    target_keywords: List[str] = field(default_factory=list)
+class StatsSection:
+    """统计概览区块。"""
+    title: str = ""
+    icon: str = "chart-bar"
+    items: List[StatsItem] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
-        """转换为字典以便 JSON 序列化。"""
         return {
-            'id': self.id,
-            'name': self.name,
-            'version': self.version,
-            'description': self.description,
-            'category': self.category.value,
-            'author': self.author,
-            'enabled': self.enabled,
-            'tags': self.tags,
-            'capabilities': self.capabilities,
-            'target_keywords': self.target_keywords
+            'type': 'stats',
+            'title': self.title,
+            'icon': self.icon,
+            'items': [item.to_dict() for item in self.items]
         }
 
+
+@dataclass
+class TableColumn:
+    """表格列定义。"""
+    key: str
+    label: str
+    type: str = "text"
+    width: str = ""
+    truncate: int = 0
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            'key': self.key,
+            'label': self.label,
+            'type': self.type,
+            'width': self.width,
+            'truncate': self.truncate
+        }
+
+
+@dataclass
+class TableSection:
+    """表格区块。"""
+    title: str = ""
+    severity: str = "info"
+    icon: str = "table"
+    columns: List[Dict] = field(default_factory=list)
+    rows: List[Dict] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            'type': 'table',
+            'title': self.title,
+            'severity': self.severity,
+            'icon': self.icon,
+            'columns': self.columns,
+            'rows': self.rows
+        }
+
+
+@dataclass
+class TimelineEvent:
+    """时间线事件。"""
+    timestamp: str
+    title: str
+    description: str = ""
+    severity: str = "info"
+    icon: str = ""
+    detail: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            'timestamp': self.timestamp,
+            'title': self.title,
+            'description': self.description,
+            'severity': self.severity,
+            'icon': self.icon,
+            'detail': self.detail
+        }
+
+
+@dataclass
+class TimelineSection:
+    """时间线区块。"""
+    title: str = ""
+    icon: str = "clock"
+    events: List[TimelineEvent] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            'type': 'timeline',
+            'title': self.title,
+            'icon': self.icon,
+            'events': [e.to_dict() for e in self.events]
+        }
+
+
+@dataclass
+class CardItem:
+    """卡片项。"""
+    title: str
+    severity: str = "info"
+    icon: str = ""
+    content: Dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            'title': self.title,
+            'severity': self.severity,
+            'icon': self.icon,
+            'content': self.content
+        }
+
+
+@dataclass
+class CardsSection:
+    """卡片区块。"""
+    title: str = ""
+    icon: str = "layers"
+    cards: List[CardItem] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            'type': 'cards',
+            'title': self.title,
+            'icon': self.icon,
+            'cards': [c.to_dict() for c in self.cards]
+        }
+
+
+@dataclass
+class ChartData:
+    """图表数据。"""
+    labels: List[str] = field(default_factory=list)
+    values: List[Any] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            'labels': self.labels,
+            'values': self.values
+        }
+
+
+@dataclass
+class ChartSection:
+    """图表区块。"""
+    title: str = ""
+    icon: str = "chart-bar"
+    chart_type: str = "bar"
+    data: ChartData = field(default_factory=ChartData)
+    options: Dict[str, str] = field(default_factory=dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            'type': 'chart',
+            'title': self.title,
+            'icon': self.icon,
+            'chart_type': self.chart_type,
+            'data': self.data.to_dict(),
+            'options': self.options
+        }
+
+
+@dataclass
+class SearchBoxSection:
+    """搜索框区块。"""
+    title: str = ""
+    icon: str = "search"
+    placeholder: str = ""
+    data: List[Dict] = field(default_factory=list)
+    search_fields: List[str] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            'type': 'search_box',
+            'title': self.title,
+            'icon': self.icon,
+            'placeholder': self.placeholder,
+            'data': self.data,
+            'search_fields': self.search_fields
+        }
+
+
+@dataclass
+class RawSection:
+    """原始数据区块。"""
+    title: str = ""
+    data: Dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            'type': 'raw',
+            'title': self.title,
+            'data': self.data
+        }
+
+
+# ========== AnalysisResult ==========
 
 @dataclass
 class AnalysisResult:
     """插件分析结果。"""
-    plugin_id: str
-    plugin_name: str
-    analysis_time: str
-    log_file: str
-    error_count: int = 0
-    warning_count: int = 0
-    errors: List[Dict] = field(default_factory=list)
-    warnings: List[Dict] = field(default_factory=list)
-    statistics: Dict[str, Any] = field(default_factory=dict)
-    raw_output: Dict[str, Any] = field(default_factory=dict)
+    meta: ResultMeta
+    sections: List[Any] = field(default_factory=list)
+
+    def add_stats(self, title: str, items: List[StatsItem], icon: str = "chart-bar"):
+        """添加统计概览区块。"""
+        self.sections.append(StatsSection(title=title, icon=icon, items=items))
+
+    def add_table(self, title: str, columns: List[Dict], rows: List[Dict],
+                  severity: str = "info", icon: str = "table"):
+        """添加表格区块。"""
+        self.sections.append(TableSection(
+            title=title, severity=severity, icon=icon, columns=columns, rows=rows
+        ))
+
+    def add_timeline(self, title: str, events: List[TimelineEvent], icon: str = "clock"):
+        """添加时间线区块。"""
+        self.sections.append(TimelineSection(title=title, icon=icon, events=events))
+
+    def add_cards(self, title: str, cards: List[CardItem], icon: str = "layers"):
+        """添加卡片区块。"""
+        self.sections.append(CardsSection(title=title, icon=icon, cards=cards))
+
+    def add_chart(self, title: str, chart_type: str, data: ChartData,
+                  options: Dict[str, str] = None, icon: str = "chart-bar"):
+        """添加图表区块。"""
+        self.sections.append(ChartSection(
+            title=title, icon=icon, chart_type=chart_type, data=data,
+            options=options or {}
+        ))
+
+    def add_search_box(self, title: str, data: List[Dict], search_fields: List[str],
+                       placeholder: str = "", icon: str = "search"):
+        """添加搜索框区块。"""
+        self.sections.append(SearchBoxSection(
+            title=title, icon=icon, placeholder=placeholder,
+            data=data, search_fields=search_fields
+        ))
+
+    def add_raw(self, title: str, data: Dict[str, Any]):
+        """添加原始数据区块。"""
+        self.sections.append(RawSection(title=title, data=data))
 
     def to_dict(self) -> Dict[str, Any]:
         """转换为字典以便 JSON 序列化。"""
         return {
-            'plugin_id': self.plugin_id,
-            'plugin_name': self.plugin_name,
-            'analysis_time': self.analysis_time,
-            'log_file': self.log_file,
-            'error_count': self.error_count,
-            'warning_count': self.warning_count,
-            'errors': self.errors,
-            'warnings': self.warnings,
-            'statistics': self.statistics,
-            'raw_output': self.raw_output
+            'meta': self.meta.to_dict(),
+            'sections': [s.to_dict() for s in self.sections]
         }
 
 
-@dataclass
-class MultiPluginAnalysisResult:
-    """多插件分析结果，包含每个插件的结构。"""
-    analysis_time: str
-    log_file: str
-    plugins: Dict[str, AnalysisResult] = field(default_factory=dict)
-
-    def to_dict(self) -> Dict[str, Any]:
-        """转换为字典以便 JSON 序列化。"""
-        return {
-            'analysis_time': self.analysis_time,
-            'log_file': self.log_file,
-            'plugins': {
-                plugin_id: result.to_dict()
-                for plugin_id, result in self.plugins.items()
-            }
-        }
-
-    def get_total_errors(self) -> int:
-        """获取所有插件的错误总数。"""
-        return sum(r.error_count for r in self.plugins.values())
-
-    def get_total_warnings(self) -> int:
-        """获取所有插件的警告总数。"""
-        return sum(r.warning_count for r in self.plugins.values())
-
-    def get_all_errors(self) -> List[Dict]:
-        """获取所有插件的错误信息。"""
-        all_errors = []
-        for result in self.plugins.values():
-            all_errors.extend(result.errors)
-        return all_errors
-
-    def get_all_warnings(self) -> List[Dict]:
-        """获取所有插件的警告信息。"""
-        all_warnings = []
-        for result in self.plugins.values():
-            all_warnings.extend(result.warnings)
-        return all_warnings
-
-    def get_merged_statistics(self) -> Dict[str, Any]:
-        """获取所有插件的合并统计数据。"""
-        merged = {}
-        for result in self.plugins.values():
-            for key, value in result.statistics.items():
-                if key in merged:
-                    if isinstance(value, (int, float)) and isinstance(merged[key], (int, float)):
-                        merged[key] += value
-                    elif isinstance(value, dict) and isinstance(merged[key], dict):
-                        merged[key].update(value)
-                else:
-                    merged[key] = value
-        return merged
-
+# ========== BasePlugin ==========
 
 class BasePlugin(ABC):
     """
     所有插件的抽象基类。
 
-    所有插件必须继承此类并实现必需的抽象方法和属性。
+    插件元数据通过 plugin.json 配置，由 PluginManager 加载时读取并注入。
     """
 
+    def __init__(self):
+        self._log_callback: Optional[Callable[[str], None]] = None
+        self._id: str = ""
+        self._name: str = ""
+        self._plugin_type: str = ""
+        self._version: str = "1.0.0"
+        self._description: str = ""
+
     @property
-    @abstractmethod
     def id(self) -> str:
         """插件唯一标识符。"""
-        pass
+        return self._id
 
     @property
-    @abstractmethod
     def name(self) -> str:
-        """插件可读名称。"""
-        pass
+        """插件名称。"""
+        return self._name
 
-    @property
-    @abstractmethod
-    def version(self) -> str:
-        """插件版本字符串。"""
-        pass
+    def get_plugin_type(self) -> str:
+        """插件所属类型：CloudBMC、iBMC、LxBMC。"""
+        return self._plugin_type
 
-    @property
-    @abstractmethod
-    def description(self) -> str:
-        """插件描述。"""
-        pass
+    def get_chinese_description(self) -> str:
+        """中文描述。"""
+        return self._description
 
-    @property
-    @abstractmethod
-    def category(self) -> PluginCategory:
-        """插件类别。"""
-        pass
+    def get_version(self) -> str:
+        """版本号。"""
+        return self._version
+
+    def set_metadata(self, id: str = None, name: str = None,
+                     plugin_type: str = None, version: str = None,
+                     description: str = None) -> None:
+        """设置插件元数据（由 PluginManager 调用）。"""
+        if id is not None:
+            self._id = id
+        if name is not None:
+            self._name = name
+        if plugin_type is not None:
+            self._plugin_type = plugin_type
+        if version is not None:
+            self._version = version
+        if description is not None:
+            self._description = description
+
+    def set_log_callback(self, callback: Callable[[str], None]) -> None:
+        """设置日志记录回调函数。"""
+        self._log_callback = callback
+
+    def log(self, message: str) -> None:
+        """使用回调函数记录日志。"""
+        if self._log_callback:
+            self._log_callback(f"[{self.name}] {message}")
 
     @abstractmethod
     def analyze(self, log_file: str) -> AnalysisResult:
@@ -184,74 +397,3 @@ class BasePlugin(ABC):
             包含分析结果的 AnalysisResult。
         """
         pass
-
-    # 带默认实现的可选方法
-
-    @property
-    def author(self) -> str:
-        """插件作者。"""
-        return ""
-
-    @property
-    def tags(self) -> List[str]:
-        """插件标签，用于筛选/搜索。"""
-        return []
-
-    @property
-    def capabilities(self) -> List[str]:
-        """插件能力，用于 AI 选择。"""
-        return []
-
-    @property
-    def target_keywords(self) -> List[str]:
-        """目标关键词，用于 AI 选择。"""
-        return []
-
-    def get_ai_description(self) -> str:
-        """
-        生成 AI 可读的插件描述。
-
-        Returns:
-            str: AI 可读的描述文本
-        """
-        desc = f"插件ID: {self.id}\n"
-        desc += f"名称: {self.name}\n"
-        desc += f"类别: {self.category.value}\n"
-        desc += f"描述: {self.description}\n"
-        if self.capabilities:
-            desc += f"能力: {', '.join(self.capabilities)}\n"
-        if self.target_keywords:
-            desc += f"目标关键词: {', '.join(self.target_keywords)}\n"
-        return desc
-
-    def validate_config(self) -> bool:
-        """
-        验证插件配置。
-
-        Returns:
-            如果配置有效返回 True，否则返回 False。
-        """
-        return True
-
-    def initialize(self) -> None:
-        """初始化插件。插件加载时调用一次。"""
-        pass
-
-    def cleanup(self) -> None:
-        """清理插件资源。插件卸载时调用。"""
-        pass
-
-    def get_info(self) -> PluginInfo:
-        """获取插件信息作为 PluginInfo 对象。"""
-        return PluginInfo(
-            id=self.id,
-            name=self.name,
-            version=self.version,
-            description=self.description,
-            category=self.category,
-            author=self.author,
-            enabled=True,
-            tags=self.tags,
-            capabilities=self.capabilities,
-            target_keywords=self.target_keywords
-        )
