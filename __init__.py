@@ -9,6 +9,7 @@ from plugins.base import (
     SectionType
 )
 from plugins.manager import PluginManager, get_plugin_manager
+from plugins.renderer import HtmlRenderer, render_html
 
 __all__ = [
     'BasePlugin',
@@ -30,4 +31,6 @@ __all__ = [
     'SectionType',
     'PluginManager',
     'get_plugin_manager',
+    'HtmlRenderer',
+    'render_html',
 ]
