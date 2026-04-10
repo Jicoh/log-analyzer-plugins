@@ -1,10 +1,10 @@
 """
-Plugin Manager for discovering, loading, and managing plugins.
+插件管理器，用于发现、加载和管理插件。
 
-This module provides the PluginManager class that handles:
-- Plugin discovery in builtin and custom directories
-- Dynamic plugin loading
-- Plugin execution and result aggregation
+本模块提供 PluginManager 类，负责：
+- 在内置和自定义目录中发现插件
+- 动态加载插件
+- 执行插件并聚合结果
 """
 
 import os
@@ -19,26 +19,25 @@ from plugins.base import BasePlugin, PluginCategory, PluginInfo, AnalysisResult,
 
 class PluginManager:
     """
-    Manages plugin discovery, loading, and execution.
+    管理插件的发现、加载和执行。
 
-    The PluginManager scans configured directories for plugins,
-    loads them dynamically, and provides methods to query and
-    execute plugins.
+    PluginManager 扫描配置的目录以发现插件，
+    动态加载它们，并提供查询和执行插件的方法。
     """
 
     def __init__(self, plugin_dirs: Optional[List[str]] = None):
         """
-        Initialize the PluginManager.
+        初始化 PluginManager。
 
         Args:
-            plugin_dirs: Optional list of directories to scan for plugins.
-                        If None, uses default directories (builtin and custom).
+            plugin_dirs: 可选的插件扫描目录列表。
+                        如果为 None，则使用默认目录（内置和自定义）。
         """
         self._plugins: Dict[str, BasePlugin] = {}
         self._plugin_dirs = plugin_dirs
 
         if self._plugin_dirs is None:
-            # Default plugin directories
+            # 默认插件目录
             root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             self._plugin_dirs = [
                 os.path.join(root_dir, 'plugins', 'builtin'),
@@ -47,10 +46,10 @@ class PluginManager:
 
     def load_plugins(self) -> int:
         """
-        Scan plugin directories and load all valid plugins.
+        扫描插件目录并加载所有有效插件。
 
         Returns:
-            Number of plugins successfully loaded.
+            成功加载的插件数量。
         """
         loaded_count = 0
 
@@ -64,20 +63,20 @@ class PluginManager:
 
     def scan_directory(self, directory: str) -> int:
         """
-        Scan a directory for plugins.
+        扫描目录以发现插件。
 
         Args:
-            directory: Directory to scan.
+            directory: 要扫描的目录。
 
         Returns:
-            Number of plugins loaded from this directory.
+            从该目录加载的插件数量。
         """
         loaded_count = 0
 
         for item in os.listdir(directory):
             item_path = os.path.join(directory, item)
 
-            # Check if it's a potential plugin directory
+            # 检查是否为可能的插件目录
             if os.path.isdir(item_path):
                 plugin = self.load_plugin(item_path)
                 if plugin:
@@ -88,23 +87,23 @@ class PluginManager:
 
     def load_plugin(self, plugin_path: str) -> Optional[BasePlugin]:
         """
-        Load a plugin from a directory.
+        从目录加载插件。
 
         Args:
-            plugin_path: Path to the plugin directory.
+            plugin_path: 插件目录路径。
 
         Returns:
-            Loaded plugin instance or None if loading failed.
+            加载的插件实例，如果加载失败则返回 None。
         """
         plugin_file = os.path.join(plugin_path, 'plugin.py')
         metadata_file = os.path.join(plugin_path, 'plugin.json')
 
-        # Check for required plugin.py file
+        # 检查必需的 plugin.py 文件是否存在
         if not os.path.exists(plugin_file):
             return None
 
         try:
-            # Load the plugin module
+            # 加载插件模块
             spec = importlib.util.spec_from_file_location(
                 f"plugin_{os.path.basename(plugin_path)}",
                 plugin_file
@@ -116,7 +115,7 @@ class PluginManager:
             sys.modules[spec.name] = module
             spec.loader.exec_module(module)
 
-            # Look for a plugin class
+            # 查找插件类
             plugin_class = None
             for name in dir(module):
                 obj = getattr(module, name)
@@ -129,76 +128,76 @@ class PluginManager:
             if plugin_class is None:
                 return None
 
-            # Instantiate the plugin
+            # 实例化插件
             plugin = plugin_class()
 
-            # Load metadata if available
+            # 如果有元数据文件则加载
             if os.path.exists(metadata_file):
                 try:
                     with open(metadata_file, 'r', encoding='utf-8') as f:
                         metadata = json.load(f)
-                    # Metadata can override plugin attributes if needed
+                    # 元数据可以在需要时覆盖插件属性
                     plugin._metadata = metadata
                 except (json.JSONDecodeError, IOError):
                     pass
 
-            # Initialize the plugin
+            # 初始化插件
             plugin.initialize()
 
             return plugin
 
         except Exception as e:
-            print(f"Error loading plugin from {plugin_path}: {e}")
+            print(f"加载插件失败 {plugin_path}: {e}")
             return None
 
     def get_plugin(self, plugin_id: str) -> Optional[BasePlugin]:
         """
-        Get a plugin by its ID.
+        通过 ID 获取插件。
 
         Args:
-            plugin_id: The unique identifier of the plugin.
+            plugin_id: 插件的唯一标识符。
 
         Returns:
-            The plugin instance or None if not found.
+            插件实例，如果未找到则返回 None。
         """
         return self._plugins.get(plugin_id)
 
     def get_all_plugins(self) -> List[BasePlugin]:
         """
-        Get all loaded plugins.
+        获取所有已加载的插件。
 
         Returns:
-            List of all loaded plugin instances.
+            所有已加载插件实例的列表。
         """
         return list(self._plugins.values())
 
     def get_plugins_info(self) -> List[PluginInfo]:
         """
-        Get information about all loaded plugins.
+        获取所有已加载插件的信息。
 
         Returns:
-            List of PluginInfo objects.
+            PluginInfo 对象列表。
         """
         return [plugin.get_info() for plugin in self._plugins.values()]
 
     def get_plugins_by_category(self, category: PluginCategory) -> List[BasePlugin]:
         """
-        Get plugins filtered by category.
+        按类别筛选插件。
 
         Args:
-            category: The category to filter by.
+            category: 要筛选的类别。
 
         Returns:
-            List of plugins in the specified category.
+            指定类别中的插件列表。
         """
         return [p for p in self._plugins.values() if p.category == category]
 
     def get_plugins_by_category_dict(self) -> Dict[str, Dict[str, Any]]:
         """
-        Get plugins grouped by category.
+        按类别分组获取插件。
 
         Returns:
-            Dictionary mapping category names to plugin lists.
+            将类别名称映射到插件列表的字典。
         """
         categories = {}
         for plugin in self._plugins.values():
@@ -213,10 +212,10 @@ class PluginManager:
 
     def get_plugins_ai_description(self) -> str:
         """
-        Get AI-readable description for all plugins.
+        获取所有插件的 AI 可读描述。
 
         Returns:
-            str: AI-readable plugins description text
+            str: AI 可读的插件描述文本
         """
         descriptions = []
         for plugin in self._plugins.values():
@@ -225,17 +224,17 @@ class PluginManager:
 
     def run_analysis(self, plugin_ids: List[str], log_file: str) -> MultiPluginAnalysisResult:
         """
-        Run analysis using specified plugins.
+        使用指定的插件运行分析。
 
         Args:
-            plugin_ids: List of plugin IDs to run.
-            log_file: Path to the log file to analyze.
+            plugin_ids: 要运行的插件 ID 列表。
+            log_file: 要分析的日志文件路径。
 
         Returns:
-            MultiPluginAnalysisResult containing per-plugin results.
+            包含每个插件结果的 MultiPluginAnalysisResult。
         """
         if not plugin_ids:
-            raise ValueError("No plugins specified for analysis")
+            raise ValueError("未指定要分析的插件")
 
         results = []
         for plugin_id in plugin_ids:
@@ -245,12 +244,12 @@ class PluginManager:
                     result = plugin.analyze(log_file)
                     results.append(result)
                 except Exception as e:
-                    print(f"Error running plugin {plugin_id}: {e}")
+                    print(f"运行插件 {plugin_id} 时出错: {e}")
 
         if not results:
-            raise RuntimeError("No plugins successfully executed")
+            raise RuntimeError("没有插件成功执行")
 
-        # Combine results into multi-plugin structure
+        # 将结果合并为多插件结构
         return self.combine_results(results)
 
     def run_analysis_multiple_files(
@@ -259,14 +258,14 @@ class PluginManager:
         log_files: List[str]
     ) -> MultiPluginAnalysisResult:
         """
-        Run analysis on multiple log files using specified plugins.
+        使用指定的插件分析多个日志文件。
 
         Args:
-            plugin_ids: List of plugin IDs to run.
-            log_files: List of log file paths to analyze.
+            plugin_ids: 要运行的插件 ID 列表。
+            log_files: 要分析的日志文件路径列表。
 
         Returns:
-            MultiPluginAnalysisResult containing per-plugin results.
+            包含每个插件结果的 MultiPluginAnalysisResult。
         """
         all_results = []
 
@@ -278,25 +277,25 @@ class PluginManager:
                         result = plugin.analyze(log_file)
                         all_results.append(result)
                     except Exception as e:
-                        print(f"Error running plugin {plugin_id} on {log_file}: {e}")
+                        print(f"在 {log_file} 上运行插件 {plugin_id} 时出错: {e}")
 
         if not all_results:
-            raise RuntimeError("No plugins successfully executed")
+            raise RuntimeError("没有插件成功执行")
 
         return self.combine_results(all_results)
 
     def combine_results(self, results: List[AnalysisResult]) -> MultiPluginAnalysisResult:
         """
-        Combine multiple analysis results into MultiPluginAnalysisResult.
+        将多个分析结果合并为 MultiPluginAnalysisResult。
 
-        Results are stored by plugin ID, preserving per-plugin structure.
-        When the same plugin runs on multiple files, its results are merged.
+        结果按插件 ID 存储，保留每个插件的结构。
+        当同一插件分析多个文件时，其结果会被合并。
 
         Args:
-            results: List of AnalysisResult objects to combine.
+            results: 要合并的 AnalysisResult 对象列表。
 
         Returns:
-            MultiPluginAnalysisResult with per-plugin structure.
+            具有按插件结构的 MultiPluginAnalysisResult。
         """
         if not results:
             return MultiPluginAnalysisResult(
@@ -309,17 +308,17 @@ class PluginManager:
             log_file=', '.join(set(r.log_file for r in results))
         )
 
-        # Group results by plugin_id
+        # 按插件 ID 分组结果
         for result in results:
             plugin_id = result.plugin_id
             if plugin_id in multi_result.plugins:
-                # Merge with existing result for same plugin
+                # 与同一插件的现有结果合并
                 existing = multi_result.plugins[plugin_id]
                 existing.error_count += result.error_count
                 existing.warning_count += result.warning_count
                 existing.errors.extend(result.errors)
                 existing.warnings.extend(result.warnings)
-                # Merge statistics
+                # 合并统计数据
                 for key, value in result.statistics.items():
                     if key in existing.statistics:
                         if isinstance(value, (int, float)) and isinstance(existing.statistics[key], (int, float)):
@@ -328,40 +327,40 @@ class PluginManager:
                             existing.statistics[key].update(value)
                     else:
                         existing.statistics[key] = value
-                # Merge raw_output if both are dicts
+                # 如果两者都是字典则合并 raw_output
                 if isinstance(result.raw_output, dict) and isinstance(existing.raw_output, dict):
                     existing.raw_output.update(result.raw_output)
             else:
-                # Create new entry for this plugin
+                # 为此插件创建新条目
                 multi_result.plugins[plugin_id] = result
 
         return multi_result
 
     def cleanup(self) -> None:
-        """Clean up all loaded plugins."""
+        """清理所有已加载的插件。"""
         for plugin in self._plugins.values():
             try:
                 plugin.cleanup()
             except Exception as e:
-                print(f"Error cleaning up plugin {plugin.id}: {e}")
+                print(f"清理插件 {plugin.id} 时出错: {e}")
         self._plugins.clear()
 
 
-# Global plugin manager instance
+# 全局插件管理器实例
 _plugin_manager: Optional[PluginManager] = None
 
 
 def get_plugin_manager(custom_dirs: Optional[List[str]] = None) -> PluginManager:
     """
-    Get the global plugin manager instance.
+    获取全局插件管理器实例。
 
-    Creates the manager if it doesn't exist and loads plugins.
+    如果不存在则创建管理器并加载插件。
 
     Args:
-        custom_dirs: Optional list of external custom plugin directories.
+        custom_dirs: 可选的外部自定义插件目录列表。
 
     Returns:
-        The global PluginManager instance.
+        全局 PluginManager 实例。
     """
     global _plugin_manager
     if _plugin_manager is None:
@@ -376,15 +375,15 @@ def get_plugin_manager(custom_dirs: Optional[List[str]] = None) -> PluginManager
 
         _plugin_manager = PluginManager(plugin_dirs=plugin_dirs)
         count = _plugin_manager.load_plugins()
-        print(f"Loaded {count} plugin(s)")
+        print(f"已加载 {count} 个插件")
     return _plugin_manager
 
 
 def reset_plugin_manager() -> None:
     """
-    Reset the global plugin manager.
+    重置全局插件管理器。
 
-    Useful for testing or reloading plugins.
+    适用于测试或重新加载插件。
     """
     global _plugin_manager
     if _plugin_manager:

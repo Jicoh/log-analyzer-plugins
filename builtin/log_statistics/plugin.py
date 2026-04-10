@@ -1,8 +1,8 @@
 """
-Log Statistics Plugin
+日志统计插件
 
-A plugin that provides statistical analysis of log files,
-including time distribution, component activity, and pattern detection.
+提供日志文件统计分析的插件，
+包括时间分布、组件活动和模式检测。
 """
 
 import re
@@ -15,7 +15,7 @@ from plugins.base import BasePlugin, PluginCategory, AnalysisResult
 
 
 class LogStatisticsPlugin(BasePlugin):
-    """Log Statistics Analysis Plugin."""
+    """日志统计分析插件。"""
 
     @property
     def id(self) -> str:
@@ -56,21 +56,21 @@ class LogStatisticsPlugin(BasePlugin):
 
     def analyze(self, log_file: str) -> AnalysisResult:
         """
-        Analyze log file statistics.
+        分析日志文件统计数据。
 
         Args:
-            log_file: Path to the log file.
+            log_file: 日志文件路径。
 
         Returns:
-            AnalysisResult with statistical analysis.
+            包含统计分析的 AnalysisResult。
         """
         analysis_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         log_filename = os.path.basename(log_file)
 
-        # Read log file
+        # 读取日志文件
         lines = self.read_log_file(log_file)
 
-        # Analyze statistics
+        # 分析统计数据
         time_distribution = self.analyze_time_distribution(lines)
         component_activity = self.analyze_component_activity(lines)
         log_size_info = self.analyze_log_size(lines, log_file)
@@ -98,18 +98,18 @@ class LogStatisticsPlugin(BasePlugin):
         )
 
     def read_log_file(self, log_file: str) -> List[str]:
-        """Read log file content."""
+        """读取日志文件内容。"""
         with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
             return f.readlines()
 
     def analyze_time_distribution(self, lines: List[str]) -> Dict[str, int]:
-        """Analyze time distribution of log entries."""
+        """分析日志条目的时间分布。"""
         hour_counter = Counter()
 
-        # Time patterns
+        # 时间模式
         time_patterns = [
             r'(\d{2}):\d{2}:\d{2}',  # HH:MM:SS
-            r'\d{4}-\d{2}-\d{2}T(\d{2}):\d{2}:\d{2}',  # ISO format
+            r'\d{4}-\d{2}-\d{2}T(\d{2}):\d{2}:\d{2}',  # ISO 格式
         ]
 
         for line in lines:
@@ -123,24 +123,24 @@ class LogStatisticsPlugin(BasePlugin):
         return dict(hour_counter.most_common(24))
 
     def analyze_component_activity(self, lines: List[str]) -> Dict[str, int]:
-        """Analyze component activity."""
+        """分析组件活动情况。"""
         component_counter = Counter()
 
         for line in lines:
-            # Match content in square brackets (component names)
+            # 匹配方括号中的内容（组件名）
             matches = re.findall(r'\[([^\]]+)\]', line)
             for match in matches:
-                # Skip timestamp-like content
+                # 跳过类似时间戳的内容
                 if not re.match(r'^\d{4}-\d{2}-\d{2}', match):
                     component_counter[match] += 1
 
         return dict(component_counter.most_common(15))
 
     def analyze_log_size(self, lines: List[str], log_file: str) -> Dict[str, Any]:
-        """Analyze log file size."""
+        """分析日志文件大小。"""
         size_bytes = os.path.getsize(log_file)
 
-        # Convert to human readable
+        # 转换为可读格式
         for unit in ['B', 'KB', 'MB', 'GB']:
             if size_bytes < 1024:
                 size_human = f"{size_bytes:.2f} {unit}"
@@ -155,5 +155,5 @@ class LogStatisticsPlugin(BasePlugin):
         }
 
 
-# Export plugin class for discovery
+# 导出插件类以供发现
 plugin_class = LogStatisticsPlugin

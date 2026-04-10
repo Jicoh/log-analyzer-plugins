@@ -1,8 +1,7 @@
 """
-Log Parser Plugin
+日志解析插件
 
-A builtin plugin that parses log files and extracts errors, warnings,
-and statistics.
+内置插件，用于解析日志文件并提取错误、警告和统计数据。
 """
 
 import re
@@ -15,12 +14,12 @@ from plugins.base import BasePlugin, PluginCategory, AnalysisResult
 
 
 class LogParserPlugin(BasePlugin):
-    """BMC Log Parser Plugin."""
+    """BMC 日志解析插件。"""
 
-    # Common log levels
+    # 常见日志级别
     LOG_LEVELS = ['ERROR', 'WARN', 'WARNING', 'INFO', 'DEBUG', 'CRITICAL', 'FATAL']
 
-    # Common error patterns
+    # 常见错误模式
     ERROR_PATTERNS = [
         r'error',
         r'fail',
@@ -35,7 +34,7 @@ class LogParserPlugin(BasePlugin):
         r'corrupt'
     ]
 
-    # Common warning patterns
+    # 常见警告模式
     WARNING_PATTERNS = [
         r'warn',
         r'warning',
@@ -85,26 +84,26 @@ class LogParserPlugin(BasePlugin):
 
     def analyze(self, log_file: str) -> AnalysisResult:
         """
-        Analyze a log file.
+        分析日志文件。
 
         Args:
-            log_file: Path to the log file.
+            log_file: 日志文件路径。
 
         Returns:
-            AnalysisResult with the analysis results.
+            包含分析结果的 AnalysisResult。
         """
         analysis_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         log_filename = os.path.basename(log_file)
 
-        # Read and parse log file
+        # 读取并解析日志文件
         lines = self.read_log_file(log_file)
         parsed_lines = self.parse_lines(lines)
 
-        # Extract errors and warnings
+        # 提取错误和警告
         errors = self.extract_errors(parsed_lines)
         warnings = self.extract_warnings(parsed_lines)
 
-        # Calculate statistics
+        # 计算统计数据
         statistics = self.calculate_statistics(lines, parsed_lines, len(errors), len(warnings))
 
         return AnalysisResult(
@@ -120,12 +119,12 @@ class LogParserPlugin(BasePlugin):
         )
 
     def read_log_file(self, log_file: str) -> List[str]:
-        """Read log file content."""
+        """读取日志文件内容。"""
         with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
             return f.readlines()
 
     def parse_lines(self, lines: List[str]) -> List[Dict[str, Any]]:
-        """Parse log lines."""
+        """解析日志行。"""
         parsed = []
         for line_num, line in enumerate(lines, 1):
             parsed_line = self.parse_line(line.strip(), line_num)
@@ -134,7 +133,7 @@ class LogParserPlugin(BasePlugin):
         return parsed
 
     def parse_line(self, line: str, line_num: int) -> Dict[str, Any]:
-        """Parse a single log line."""
+        """解析单行日志。"""
         if not line:
             return None
 
@@ -147,7 +146,7 @@ class LogParserPlugin(BasePlugin):
             'message': ''
         }
 
-        # Try to extract timestamp
+        # 尝试提取时间戳
         timestamp_patterns = [
             r'(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})',
             r'(\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2}:\d{2})',
@@ -161,27 +160,27 @@ class LogParserPlugin(BasePlugin):
                 result['timestamp'] = match.group(1)
                 break
 
-        # Extract log level
+        # 提取日志级别
         line_upper = line.upper()
         for level in self.LOG_LEVELS:
             if level in line_upper:
                 result['level'] = level
                 break
 
-        # Extract component name (content in square brackets)
+        # 提取组件名（方括号中的内容）
         component_match = re.search(r'\[([^\]]+)\]', line)
         if component_match:
             component = component_match.group(1)
             if component and not re.match(r'^\d{4}-\d{2}-\d{2}', component):
                 result['component'] = component
 
-        # Extract message
+        # 提取消息
         result['message'] = line
 
         return result
 
     def extract_errors(self, parsed_lines: List[Dict]) -> List[Dict]:
-        """Extract error information."""
+        """提取错误信息。"""
         errors = []
         error_pattern = re.compile('|'.join(self.ERROR_PATTERNS), re.IGNORECASE)
 
@@ -189,14 +188,14 @@ class LogParserPlugin(BasePlugin):
             if line_info['level'] in ['ERROR', 'CRITICAL', 'FATAL']:
                 errors.append(self.format_issue(line_info))
             elif error_pattern.search(line_info['message']):
-                # Avoid duplicates
+                # 避免重复
                 if line_info['level'] not in ['WARN', 'WARNING']:
                     errors.append(self.format_issue(line_info))
 
         return errors
 
     def extract_warnings(self, parsed_lines: List[Dict]) -> List[Dict]:
-        """Extract warning information."""
+        """提取警告信息。"""
         warnings = []
         warning_pattern = re.compile('|'.join(self.WARNING_PATTERNS), re.IGNORECASE)
 
@@ -204,14 +203,14 @@ class LogParserPlugin(BasePlugin):
             if line_info['level'] in ['WARN', 'WARNING']:
                 warnings.append(self.format_issue(line_info))
             elif warning_pattern.search(line_info['message']):
-                # Avoid duplicates with errors
+                # 避免与错误重复
                 if line_info['level'] not in ['ERROR', 'CRITICAL', 'FATAL']:
                     warnings.append(self.format_issue(line_info))
 
         return warnings
 
     def format_issue(self, line_info: Dict) -> Dict:
-        """Format issue information."""
+        """格式化问题信息。"""
         return {
             'timestamp': line_info['timestamp'],
             'level': line_info['level'] or 'UNKNOWN',
@@ -227,7 +226,7 @@ class LogParserPlugin(BasePlugin):
         error_count: int,
         warning_count: int
     ) -> Dict[str, Any]:
-        """Calculate statistics."""
+        """计算统计数据。"""
         total_lines = len(lines)
         level_counter = Counter()
         component_counter = Counter()
@@ -247,5 +246,5 @@ class LogParserPlugin(BasePlugin):
         }
 
 
-# Export plugin class for discovery
+# 导出插件类以供发现
 plugin_class = LogParserPlugin

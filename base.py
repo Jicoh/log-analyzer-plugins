@@ -1,8 +1,7 @@
 """
-Plugin base classes and interfaces.
+插件基类和接口。
 
-This module defines the abstract base class and data structures
-that all plugins must implement.
+本模块定义了所有插件必须实现的抽象基类和数据结构。
 """
 
 from abc import ABC, abstractmethod
@@ -13,17 +12,17 @@ from datetime import datetime
 
 
 class PluginCategory(Enum):
-    """Plugin category enumeration."""
-    PARSER = "parser"           # Log parsing plugins
-    ANALYZER = "analyzer"       # Log analysis plugins
-    DETECTOR = "detector"       # Problem detection plugins
-    REPORTER = "reporter"       # Report generation plugins
-    OTHER = "other"             # Other plugins
+    """插件类别枚举。"""
+    PARSER = "parser"           # 日志解析插件
+    ANALYZER = "analyzer"       # 日志分析插件
+    DETECTOR = "detector"       # 问题检测插件
+    REPORTER = "reporter"       # 报告生成插件
+    OTHER = "other"             # 其他插件
 
 
 @dataclass
 class PluginInfo:
-    """Plugin information metadata."""
+    """插件信息元数据。"""
     id: str
     name: str
     version: str
@@ -36,7 +35,7 @@ class PluginInfo:
     target_keywords: List[str] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary for JSON serialization."""
+        """转换为字典以便 JSON 序列化。"""
         return {
             'id': self.id,
             'name': self.name,
@@ -53,7 +52,7 @@ class PluginInfo:
 
 @dataclass
 class AnalysisResult:
-    """Analysis result from a plugin."""
+    """插件分析结果。"""
     plugin_id: str
     plugin_name: str
     analysis_time: str
@@ -66,7 +65,7 @@ class AnalysisResult:
     raw_output: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary for JSON serialization."""
+        """转换为字典以便 JSON 序列化。"""
         return {
             'plugin_id': self.plugin_id,
             'plugin_name': self.plugin_name,
@@ -83,13 +82,13 @@ class AnalysisResult:
 
 @dataclass
 class MultiPluginAnalysisResult:
-    """Multiple plugins analysis result with per-plugin structure."""
+    """多插件分析结果，包含每个插件的结构。"""
     analysis_time: str
     log_file: str
     plugins: Dict[str, AnalysisResult] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary for JSON serialization."""
+        """转换为字典以便 JSON 序列化。"""
         return {
             'analysis_time': self.analysis_time,
             'log_file': self.log_file,
@@ -100,29 +99,29 @@ class MultiPluginAnalysisResult:
         }
 
     def get_total_errors(self) -> int:
-        """Get total error count across all plugins."""
+        """获取所有插件的错误总数。"""
         return sum(r.error_count for r in self.plugins.values())
 
     def get_total_warnings(self) -> int:
-        """Get total warning count across all plugins."""
+        """获取所有插件的警告总数。"""
         return sum(r.warning_count for r in self.plugins.values())
 
     def get_all_errors(self) -> List[Dict]:
-        """Get all errors from all plugins."""
+        """获取所有插件的错误信息。"""
         all_errors = []
         for result in self.plugins.values():
             all_errors.extend(result.errors)
         return all_errors
 
     def get_all_warnings(self) -> List[Dict]:
-        """Get all warnings from all plugins."""
+        """获取所有插件的警告信息。"""
         all_warnings = []
         for result in self.plugins.values():
             all_warnings.extend(result.warnings)
         return all_warnings
 
     def get_merged_statistics(self) -> Dict[str, Any]:
-        """Get merged statistics from all plugins."""
+        """获取所有插件的合并统计数据。"""
         merged = {}
         for result in self.plugins.values():
             for key, value in result.statistics.items():
@@ -138,83 +137,82 @@ class MultiPluginAnalysisResult:
 
 class BasePlugin(ABC):
     """
-    Abstract base class for all plugins.
+    所有插件的抽象基类。
 
-    All plugins must inherit from this class and implement the required
-    abstract methods and properties.
+    所有插件必须继承此类并实现必需的抽象方法和属性。
     """
 
     @property
     @abstractmethod
     def id(self) -> str:
-        """Unique plugin identifier."""
+        """插件唯一标识符。"""
         pass
 
     @property
     @abstractmethod
     def name(self) -> str:
-        """Human-readable plugin name."""
+        """插件可读名称。"""
         pass
 
     @property
     @abstractmethod
     def version(self) -> str:
-        """Plugin version string."""
+        """插件版本字符串。"""
         pass
 
     @property
     @abstractmethod
     def description(self) -> str:
-        """Plugin description."""
+        """插件描述。"""
         pass
 
     @property
     @abstractmethod
     def category(self) -> PluginCategory:
-        """Plugin category."""
+        """插件类别。"""
         pass
 
     @abstractmethod
     def analyze(self, log_file: str) -> AnalysisResult:
         """
-        Analyze a log file.
+        分析日志文件。
 
         Args:
-            log_file: Path to the log file to analyze.
+            log_file: 要分析的日志文件路径。
 
         Returns:
-            AnalysisResult containing the analysis results.
+            包含分析结果的 AnalysisResult。
         """
         pass
 
-    # Optional methods with default implementations
+    # 带默认实现的可选方法
 
     @property
     def author(self) -> str:
-        """Plugin author."""
+        """插件作者。"""
         return ""
 
     @property
     def tags(self) -> List[str]:
-        """Plugin tags for filtering/searching."""
+        """插件标签，用于筛选/搜索。"""
         return []
 
     @property
     def capabilities(self) -> List[str]:
-        """Plugin capabilities for AI selection."""
+        """插件能力，用于 AI 选择。"""
         return []
 
     @property
     def target_keywords(self) -> List[str]:
-        """Target keywords for AI selection."""
+        """目标关键词，用于 AI 选择。"""
         return []
 
     def get_ai_description(self) -> str:
         """
-        Generate AI-readable plugin description.
+        生成 AI 可读的插件描述。
 
         Returns:
-            str: AI-readable description text
+            str: AI 可读的描述文本
         """
         desc = f"插件ID: {self.id}\n"
         desc += f"名称: {self.name}\n"
@@ -228,23 +226,23 @@ class BasePlugin(ABC):
 
     def validate_config(self) -> bool:
         """
-        Validate plugin configuration.
+        验证插件配置。
 
         Returns:
-            True if configuration is valid, False otherwise.
+            如果配置有效返回 True，否则返回 False。
         """
         return True
 
     def initialize(self) -> None:
-        """Initialize the plugin. Called once when plugin is loaded."""
+        """初始化插件。插件加载时调用一次。"""
         pass
 
     def cleanup(self) -> None:
-        """Clean up plugin resources. Called when plugin is unloaded."""
+        """清理插件资源。插件卸载时调用。"""
         pass
 
     def get_info(self) -> PluginInfo:
-        """Get plugin information as PluginInfo object."""
+        """获取插件信息作为 PluginInfo 对象。"""
         return PluginInfo(
             id=self.id,
             name=self.name,
