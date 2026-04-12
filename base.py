@@ -41,6 +41,7 @@ class ResultMeta:
     analysis_time: str
     log_file: str
     plugin_type: str = ""
+    description: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         """转换为字典。"""
@@ -50,7 +51,8 @@ class ResultMeta:
             'version': self.version,
             'analysis_time': self.analysis_time,
             'log_file': self.log_file,
-            'plugin_type': self.plugin_type
+            'plugin_type': self.plugin_type,
+            'description': self.description
         }
 
 

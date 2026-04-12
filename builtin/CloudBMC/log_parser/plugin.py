@@ -53,7 +53,8 @@ class LogParserPlugin(BasePlugin):
             version=self.get_version(),
             analysis_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             log_file=os.path.basename(log_file),
-            plugin_type=self.get_plugin_type()
+            plugin_type=self.get_plugin_type(),
+            description=self.get_chinese_description()
         )
 
         result = AnalysisResult(meta=meta)
