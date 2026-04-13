@@ -154,9 +154,16 @@ class PluginManager:
                 })
         return categories
 
-    def get_plugins_by_type(self, plugin_type: str) -> List[BasePlugin]:
-        """获取指定类型的所有插件。"""
-        return [p for p in self._plugins.values() if p.get_plugin_type() == plugin_type]
+    def get_plugins_ai_description(self) -> str:
+        """获取所有插件的 AI 描述文本，用于智能选择。"""
+        descriptions = []
+        for p in self._plugins.values():
+            desc = f"- ID: {p.id}\n"
+            desc += f"  名称: {p.name}\n"
+            desc += f"  类型: {p.get_plugin_type()}\n"
+            desc += f"  描述: {p.get_chinese_description()}\n"
+            descriptions.append(desc)
+        return "\n".join(descriptions)
 
     def run_analysis(self, plugin_ids: List[str], log_file: str,
                      log_callback: Optional[callable] = None) -> Dict[str, Any]:
