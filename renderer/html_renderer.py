@@ -9,6 +9,7 @@ import json
 from jinja2 import Template
 
 TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), 'template.html')
+BATCH_TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), 'batch_template.html')
 
 
 def get_severity_color(severity: str) -> str:
@@ -144,3 +145,73 @@ class HtmlRenderer:
             f.write(html_content)
 
         return output_path
+
+
+def render_batch_html(summary_path: str) -> str:
+    """
+    读取批量汇总JSON文件并生成汇总HTML。
+
+    Args:
+        summary_path: batch_summary.json 文件路径
+
+    Returns:
+        生成的batch_summary.html文件路径
+    """
+    with open(summary_path, 'r', encoding='utf-8') as f:
+        summary_data = json.load(f)
+
+    # 加载批量模板
+    with open(BATCH_TEMPLATE_PATH, 'r', encoding='utf-8') as f:
+        template = Template(f.read())
+
+    # 提取文件列表信息
+    files_info = []
+    for filename, file_data in summary_data.get('files', {}).items():
+        # 计算错误和警告数
+        total_errors = 0
+        total_warnings = 0
+        plugin_count = 0
+
+        plugin_result = file_data.get('plugin_result', {})
+        for plugin_id, plugin_data in plugin_result.items():
+            if isinstance(plugin_data, dict):
+                plugin_count += 1
+                sections = plugin_data.get('sections', [])
+                for section in sections:
+                    if section.get('type') == 'stats' and section.get('items'):
+                        for item in section.get('items', []):
+                            severity = item.get('severity', '')
+                            value = item.get('value', 0)
+                            if isinstance(value, (int, float)):
+                                if severity == 'error':
+                                    total_errors += int(value)
+                                elif severity == 'warning':
+                                    total_warnings += int(value)
+
+        files_info.append({
+            'filename': filename,
+            'output_dir': file_data.get('output_dir', ''),
+            'html_path': file_data.get('html_path', ''),
+            'total_errors': total_errors,
+            'total_warnings': total_warnings,
+            'plugin_count': plugin_count,
+            'has_ai': file_data.get('ai_result') is not None
+        })
+
+    # 构建模板数据
+    template_data = {
+        'batch_time': summary_data.get('batch_time', ''),
+        'folder_name': summary_data.get('folder_name', ''),
+        'total_files': summary_data.get('total_files', 0),
+        'files': files_info
+    }
+
+    html_content = template.render(**template_data)
+
+    output_dir = os.path.dirname(summary_path)
+    output_path = os.path.join(output_dir, 'batch_summary.html')
+
+    with open(output_path, 'w', encoding='utf-8') as f:
+        f.write(html_content)
+
+    return output_path
