@@ -52,7 +52,7 @@ class LogStatisticsPlugin(BasePlugin):
             plugin_name=self.name,
             version=self.get_version(),
             analysis_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            log_file=os.path.basename(log_file),
+            log_files=[os.path.basename(log_file)],
             plugin_type=self.get_plugin_type(),
             description=self.get_chinese_description()
         )

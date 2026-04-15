@@ -38,7 +38,7 @@ class ResultMeta:
     plugin_name: str
     version: str
     analysis_time: str
-    log_file: str
+    log_files: List[str] = field(default_factory=list)
     plugin_type: str = ""
     description: str = ""
 
@@ -49,7 +49,7 @@ class ResultMeta:
             'plugin_name': self.plugin_name,
             'version': self.version,
             'analysis_time': self.analysis_time,
-            'log_file': self.log_file,
+            'log_files': self.log_files,
             'plugin_type': self.plugin_type,
             'description': self.description
         }

@@ -58,7 +58,7 @@ class MyPlugin(BasePlugin):
             plugin_name=self.name,
             version=self.get_version(),
             analysis_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            log_file=os.path.basename(log_file),
+            log_files=[os.path.basename(log_file)],
             plugin_type=self.get_plugin_type()
         )
 
@@ -108,7 +108,7 @@ result = manager.run_analysis(["log_parser"], "/path/to/logfile")
       "plugin_name": "Log Parser",
       "version": "2.0",
       "analysis_time": "2026-04-13 16:44:19",
-      "log_file": "server.log",
+      "log_files": ["server.log"],
       "plugin_type": "CloudBMC",
       "description": "日志解析插件，提取错误和警告信息"
     },
@@ -189,7 +189,7 @@ result = manager.run_analysis(["log_parser"], "/path/to/logfile")
 | plugin_name | string | 插件显示名称 |
 | version | string | 版本号 |
 | analysis_time | string | 分析时间（YYYY-MM-DD HH:MM:SS） |
-| log_file | string | 分析的日志文件名 |
+| log_files | array | 分析的日志文件列表 |
 | plugin_type | string | 插件类型（CloudBMC、iBMC、LxBMC） |
 | description | string | 插件描述 |
 
