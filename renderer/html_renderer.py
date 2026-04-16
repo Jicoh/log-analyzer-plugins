@@ -7,6 +7,7 @@
 import os
 import json
 from jinja2 import Template
+from plugins.base import count_severity
 
 TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), 'template.html')
 BATCH_TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), 'batch_template.html')
@@ -177,16 +178,9 @@ def render_batch_html(summary_path: str) -> str:
             if isinstance(plugin_data, dict):
                 plugin_count += 1
                 sections = plugin_data.get('sections', [])
-                for section in sections:
-                    if section.get('type') == 'stats' and section.get('items'):
-                        for item in section.get('items', []):
-                            severity = item.get('severity', '')
-                            value = item.get('value', 0)
-                            if isinstance(value, (int, float)):
-                                if severity == 'error':
-                                    total_errors += int(value)
-                                elif severity == 'warning':
-                                    total_warnings += int(value)
+                counts = count_severity(sections)
+                total_errors += counts['errors']
+                total_warnings += counts['warnings']
 
         files_info.append({
             'filename': filename,

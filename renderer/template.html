@@ -307,6 +307,33 @@
                                                 {% endif %}
                                             {% endif %}
                                         {% endfor %}
+                                    {% elif section['type'] == 'table' %}
+                                        {% for row in section['rows'] %}
+                                            {% if row.get('severity') == 'warning' %}
+                                                {% set ns.warning_count = ns.warning_count + 1 %}
+                                            {% endif %}
+                                            {% if row.get('severity') == 'error' %}
+                                                {% set ns.error_count = ns.error_count + 1 %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% elif section['type'] == 'timeline' %}
+                                        {% for event in section['events'] %}
+                                            {% if event.get('severity') == 'warning' %}
+                                                {% set ns.warning_count = ns.warning_count + 1 %}
+                                            {% endif %}
+                                            {% if event.get('severity') == 'error' %}
+                                                {% set ns.error_count = ns.error_count + 1 %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% elif section['type'] == 'cards' %}
+                                        {% for card in section['cards'] %}
+                                            {% if card.get('severity') == 'warning' %}
+                                                {% set ns.warning_count = ns.warning_count + 1 %}
+                                            {% endif %}
+                                            {% if card.get('severity') == 'error' %}
+                                                {% set ns.error_count = ns.error_count + 1 %}
+                                            {% endif %}
+                                        {% endfor %}
                                     {% endif %}
                                 {% endfor %}
                                 <tr{% if ns.error_count > 0 %} class="table-danger"{% elif ns.warning_count > 0 %} class="table-warning"{% endif %}>

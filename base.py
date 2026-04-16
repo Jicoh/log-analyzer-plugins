@@ -323,6 +323,58 @@ class AnalysisResult:
         }
 
 
+def count_severity(sections: List[Dict]) -> Dict[str, int]:
+    """统计所有区块中 error/warning 的数量。
+
+    Args:
+        sections: AnalysisResult.sections 列表（已转为 dict）
+
+    Returns:
+        {'errors': int, 'warnings': int}
+    """
+    errors = 0
+    warnings = 0
+
+    for section in sections:
+        section_type = section.get('type', '')
+
+        if section_type == 'stats':
+            for item in section.get('items', []):
+                severity = item.get('severity', '')
+                value = item.get('value', 0)
+                if isinstance(value, (int, float)):
+                    if severity == 'error':
+                        errors += int(value)
+                    elif severity == 'warning':
+                        warnings += int(value)
+
+        elif section_type == 'table':
+            for row in section.get('rows', []):
+                severity = row.get('severity', '')
+                if severity == 'error':
+                    errors += 1
+                elif severity == 'warning':
+                    warnings += 1
+
+        elif section_type == 'timeline':
+            for event in section.get('events', []):
+                severity = event.get('severity', '')
+                if severity == 'error':
+                    errors += 1
+                elif severity == 'warning':
+                    warnings += 1
+
+        elif section_type == 'cards':
+            for card in section.get('cards', []):
+                severity = card.get('severity', '')
+                if severity == 'error':
+                    errors += 1
+                elif severity == 'warning':
+                    warnings += 1
+
+    return {'errors': errors, 'warnings': warnings}
+
+
 # ========== BasePlugin ==========
 
 class BasePlugin(ABC):

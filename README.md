@@ -213,6 +213,37 @@ items 数组中每个 StatsItem：
 | severity | string | 严重程度：info/warning/error/success |
 | icon | string | 图标名称（可选） |
 
+### 统计规则
+
+系统会自动统计各区块中 `severity == 'error'` 或 `'warning'` 的数量，用于历史记录和概况展示：
+
+| 区块类型 | 统计方式 | 说明 |
+|---------|---------|------|
+| stats | value 值累加 | StatsItem.value 直接表示数量 |
+| table | 行数累加 | 每行 severity=error/warning 计 1 次 |
+| timeline | 事件数累加 | 每个事件 severity=error/warning 计 1 次 |
+| cards | 卡片数累加 | 每个卡片 severity=error/warning 计 1 次 |
+
+### 使用建议
+
+**推荐模式：使用表格行 severity 统计错误**
+
+```python
+result.add_table("错误详情",
+    rows=[
+        {"line": 123, "message": "Error 1", "severity": "error"},
+        {"line": 456, "message": "Error 2", "severity": "error"},
+        {"line": 789, "message": "Warning 1", "severity": "warning"}
+    ],
+    severity="error"  # 区块级别（影响标题样式）
+)
+# 统计结果：errors=2, warnings=1
+```
+
+**避免重复统计**：如果 stat 和 table 都标记相同数据的 severity，会导致重复统计。正确做法是：
+- 用 stat 展示汇总时，table 只展示部分数据（top N），行 severity 设为 info
+- 或只用 table 统计，不用 stat 的 severity 统计
+
 **注意**：历史记录统计只累加 `severity == 'error'` 或 `'warning'` 且 `value` 为数字类型的统计项。
 
 **table - 表格**
@@ -387,14 +418,20 @@ result.add_stats("分析概览", [
 
 #### table - 表格
 
+区块级别 `severity` 影响标题样式，行级别 `severity` 影响行背景颜色：
+
 ```python
 result.add_table("错误详情",
     columns=[
         {"key": "line", "label": "行号", "type": "number"},
         {"key": "message", "label": "消息", "type": "text", "truncate": 50}
     ],
-    rows=[{"line": 123, "message": "Error occurred"}],
-    severity="error",
+    rows=[
+        {"line": 123, "message": "Critical error", "severity": "error"},
+        {"line": 456, "message": "Warning message", "severity": "warning"},
+        {"line": 789, "message": "Info message"}  # 无 severity，使用默认样式
+    ],
+    severity="error",  # 区块级别
     icon="x-circle"
 )
 ```
