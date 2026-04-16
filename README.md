@@ -189,7 +189,7 @@ result = manager.run_analysis(["log_parser"], "/path/to/logfile")
 | plugin_name | string | 插件显示名称 |
 | version | string | 版本号 |
 | analysis_time | string | 分析时间（YYYY-MM-DD HH:MM:SS） |
-| log_files | array | 分析的日志文件列表 |
+| log_files | array | 分析的日志文件路径列表(如果有则必填) |
 | plugin_type | string | 插件类型（CloudBMC、iBMC、LxBMC） |
 | description | string | 插件描述 |
 

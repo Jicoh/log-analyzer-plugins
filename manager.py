@@ -9,6 +9,9 @@ import importlib.util
 from typing import Dict, List, Optional, Any
 
 from plugins.base import BasePlugin, AnalysisResult
+from src.utils import get_logger
+
+logger = get_logger('plugins')
 
 
 class PluginManager:
@@ -90,7 +93,7 @@ class PluginManager:
                     with open(json_file, 'r', encoding='utf-8') as f:
                         json_metadata = json.load(f)
                 except Exception as e:
-                    print(f"读取 plugin.json 失败 {json_file}: {e}")
+                    logger.error(f"读取 plugin.json 失败: {json_file}, 错误: {e}")
 
             # 设置元数据：优先使用 json 中的值，其次是代码定义的默认值，最后是目录扫描的类型
             plugin.set_metadata(
@@ -104,7 +107,7 @@ class PluginManager:
             return plugin
 
         except Exception as e:
-            print(f"加载插件失败 {plugin_path}: {e}")
+            logger.error(f"加载插件失败: {plugin_path}, 错误: {e}")
             return None
 
     def get_plugin(self, plugin_id: str) -> Optional[BasePlugin]:
@@ -192,7 +195,7 @@ class PluginManager:
                     result = plugin.analyze(log_file)
                     results.append(result)
                 except Exception as e:
-                    print(f"运行插件 {plugin_id} 时出错: {e}")
+                    logger.error(f"运行插件 {plugin_id} 时出错: {e}")
 
         if not results:
             raise RuntimeError("没有插件成功执行")
@@ -213,7 +216,7 @@ class PluginManager:
                         result = plugin.analyze(log_file)
                         all_results.append(result)
                     except Exception as e:
-                        print(f"在 {log_file} 上运行插件 {plugin_id} 时出错: {e}")
+                        logger.error(f"在 {log_file} 上运行插件 {plugin_id} 时出错: {e}")
 
         if not all_results:
             raise RuntimeError("没有插件成功执行")
@@ -254,7 +257,7 @@ def get_plugin_manager(custom_dirs: Optional[List[str]] = None) -> PluginManager
             plugin_dirs.extend(custom_dirs)
         _plugin_manager = PluginManager(plugin_dirs=plugin_dirs)
         count = _plugin_manager.load_plugins()
-        print(f"已加载 {count} 个插件")
+        logger.info(f"已加载 {count} 个插件")
     return _plugin_manager
 
 
