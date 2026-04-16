@@ -50,22 +50,17 @@ class MyPlugin(BasePlugin):
         import os
         from datetime import datetime
 
-        # 判断是文件还是目录
-        if os.path.isfile(log_path):
-            log_files = [log_path]
-        else:
-            # 目录：查找所有日志文件
-            log_files = []
-            for root, dirs, files in os.walk(log_path):
-                for f in files:
-                    if f.endswith('.log') or f.endswith('.txt'):
-                        log_files.append(os.path.join(root, f))
+        # 场景1：分析目录中的所有日志文件
+        log_files = []
+        for root, dirs, files in os.walk(log_path):
+            for f in files:
+                if f.endswith('.log') or f.endswith('.txt'):
+                    log_files.append(os.path.join(root, f))
 
-        # 分析所有日志文件
-        all_lines = []
-        for log_file in log_files:
-            with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
-                all_lines.extend(f.readlines())
+        # 场景2：分析特定文件名（如果插件只分析特定文件）
+        # target_file = os.path.join(log_path, "system.log")
+        # if os.path.exists(target_file):
+        #     log_files = [target_file]
 
         meta = ResultMeta(
             plugin_id=self.id,
@@ -77,21 +72,9 @@ class MyPlugin(BasePlugin):
         )
 
         result = AnalysisResult(meta=meta)
-
         result.add_stats("分析概览", [
-            StatsItem(label="总行数", value=len(all_lines), severity="info", icon="file-text"),
-            StatsItem(label="错误数", value=5, severity="error", icon="x-circle"),
+            StatsItem(label="文件数", value=len(log_files), severity="info"),
         ])
-
-        result.add_table("错误详情",
-            columns=[
-                {"key": "line", "label": "行号", "type": "number"},
-                {"key": "message", "label": "消息", "type": "text"}
-            ],
-            rows=[{"line": 123, "message": "Error occurred"}],
-            severity="error"
-        )
-
         return result
 
 plugin_class = MyPlugin
@@ -225,10 +208,12 @@ items 数组中每个 StatsItem：
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | label | string | 统计项标签 |
-| value | number/string | 统计值 |
+| value | number/string | 统计值（数字类型才会被历史记录累加统计） |
 | unit | string | 单位（可选） |
 | severity | string | 严重程度：info/warning/error/success |
 | icon | string | 图标名称（可选） |
+
+**注意**：历史记录统计只累加 `severity == 'error'` 或 `'warning'` 且 `value` 为数字类型的统计项。
 
 **table - 表格**
 
@@ -249,7 +234,14 @@ columns 数组中每个列定义：
 | label | string | 列显示名称 |
 | type | string | 列类型：text/number |
 | width | string | 列宽度（可选） |
-| truncate | number | 截断长度（可选，超过则显示...） |
+| truncate | number | 截断长度（可选，默认50，超过则显示...） |
+
+rows 数组中每行数据：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| {key} | any | 对应 columns 中定义的 key 字段 |
+| severity | string | 行严重程度（可选，影响行样式颜色） |
 
 **timeline - 时间线**
 
@@ -264,11 +256,11 @@ events 数组中每个 TimelineEvent：
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| timestamp | string | 时间戳 |
-| title | string | 事件标题 |
+| timestamp | string | 时间戳（必需） |
+| title | string | 事件标题（必需） |
 | description | string | 事件描述（可选） |
-| severity | string | 严重程度 |
-| icon | string | 图标名称（可选） |
+| severity | string | 严重程度（必需） |
+| icon | string | 图标名称（可选，默认 "circle"） |
 | detail | string | 详细信息（可选） |
 
 **cards - 卡片组**
@@ -287,7 +279,18 @@ cards 数组中每个 CardItem：
 | title | string | 卡片标题 |
 | severity | string | 严重程度 |
 | icon | string | 图标名称（可选） |
-| content | object | 卡片内容（自定义结构） |
+| content | object | 卡片内容 |
+
+**content 字段约定（HTML渲染只支持以下字段）：**
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| summary | string | 概要文本（主要显示） |
+| description | string | 描述文本（灰色小字，可选） |
+| metrics | dict | 键值对，渲染为标签形式 |
+| details | array | 字符串数组，渲染为列表 |
+
+> 注意：content 中其他字段会保存到 JSON 但不会被 HTML 渲染。
 
 **chart - 图表**
 
@@ -304,8 +307,10 @@ data 对象结构：
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| labels | array | 标签数组 |
-| values | array | 值数组 |
+| labels | array | 标签数组（与 values 长度必须一致） |
+| values | array | 值数组（与 labels 长度必须一致） |
+
+> 注意：labels 和 values 数组长度必须一致，否则渲染会出错。
 
 **search_box - 搜索框**
 
@@ -314,7 +319,7 @@ data 对象结构：
 | type | string | 固定值 "search_box" |
 | title | string | 区块标题 |
 | icon | string | 图标名称 |
-| placeholder | string | 搜索框提示文字 |
+| placeholder | string | 搜索框提示文字（默认 "搜索..."） |
 | data | array | 可搜索数据数组 |
 | search_fields | array | 可搜索字段列表 |
 
@@ -424,9 +429,16 @@ from plugins.base import CardItem
 
 result.add_cards("问题卡片", [
     CardItem(title="内存泄漏", severity="error", icon="alert-triangle",
-             content={"summary": "发现内存持续增长", "metrics": {"影响": "高"}}),
+             content={
+                 "summary": "发现内存持续增长",
+                 "description": "需要进一步排查",
+                 "metrics": {"影响": "高", "进程": "java"},
+                 "details": ["增长速率: 1GB/h", "持续时间: 3小时"]
+             }),
 ])
 ```
+
+> 注意：content 只支持 summary/description/metrics/details 四个字段，其他字段不会被渲染。
 
 #### search_box - 搜索框
 
