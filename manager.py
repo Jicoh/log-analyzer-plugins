@@ -168,14 +168,14 @@ class PluginManager:
             descriptions.append(desc)
         return "\n".join(descriptions)
 
-    def run_analysis(self, plugin_ids: List[str], log_file: str,
+    def run_analysis(self, plugin_ids: List[str], log_path: str,
                      log_callback: Optional[callable] = None) -> Dict[str, Any]:
         """
         使用指定插件运行分析。
 
         Args:
             plugin_ids: 要运行的插件 ID 列表
-            log_file: 要分析的日志文件路径
+            log_path: 要分析的路径（文件或目录）
             log_callback: 可选的日志回调函数
 
         Returns:
@@ -192,7 +192,7 @@ class PluginManager:
                 if log_callback:
                     plugin.set_log_callback(log_callback)
                 try:
-                    result = plugin.analyze(log_file)
+                    result = plugin.analyze(log_path)
                     results.append(result)
                 except Exception as e:
                     logger.error(f"运行插件 {plugin_id} 时出错: {e}")
@@ -202,21 +202,31 @@ class PluginManager:
 
         return self.combine_results(results)
 
-    def run_analysis_multiple_files(self, plugin_ids: List[str], log_files: List[str],
-                                     log_callback: Optional[callable] = None) -> Dict[str, Any]:
-        """使用指定插件分析多个日志文件。"""
+    def run_analysis_multiple_dirs(self, plugin_ids: List[str], log_paths: List[str],
+                                    log_callback: Optional[callable] = None) -> Dict[str, Any]:
+        """
+        使用指定插件分析多个路径（目录或文件）。
+
+        Args:
+            plugin_ids: 要运行的插件 ID 列表
+            log_paths: 要分析的路径列表（每个可以是文件或目录）
+            log_callback: 可选的日志回调函数
+
+        Returns:
+            合并后的结果字典
+        """
         all_results = []
-        for log_file in log_files:
+        for log_path in log_paths:
             for plugin_id in plugin_ids:
                 plugin = self.get_plugin(plugin_id)
                 if plugin:
                     if log_callback:
                         plugin.set_log_callback(log_callback)
                     try:
-                        result = plugin.analyze(log_file)
+                        result = plugin.analyze(log_path)
                         all_results.append(result)
                     except Exception as e:
-                        logger.error(f"在 {log_file} 上运行插件 {plugin_id} 时出错: {e}")
+                        logger.error(f"在 {log_path} 上运行插件 {plugin_id} 时出错: {e}")
 
         if not all_results:
             raise RuntimeError("没有插件成功执行")

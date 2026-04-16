@@ -15,21 +15,36 @@ from plugins.base import (
 class LogParserPlugin(BasePlugin):
     """日志解析插件。"""
 
-    def analyze(self, log_file: str) -> AnalysisResult:
-        """分析日志文件。"""
-        self.log("开始解析日志文件...")
+    def analyze(self, log_path: str) -> AnalysisResult:
+        """分析日志文件或目录。"""
+        self.log(f"开始解析日志{log_path}...")
 
-        # 读取日志
-        with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
-            lines = f.readlines()
+        # 判断是文件还是目录
+        if os.path.isfile(log_path):
+            log_files = [log_path]
+        else:
+            # 目录：查找所有日志文件
+            log_files = []
+            for root, dirs, files in os.walk(log_path):
+                for f in files:
+                    if f.endswith('.log') or f.endswith('.txt'):
+                        log_files.append(os.path.join(root, f))
 
-        self.log(f"读取到 {len(lines)} 行日志")
+        self.log(f"发现 {len(log_files)} 个日志文件")
+
+        # 读取所有日志内容
+        all_lines = []
+        for log_file in log_files:
+            with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
+                all_lines.extend(f.readlines())
+
+        self.log(f"读取到 {len(all_lines)} 行日志")
 
         # 统计错误和警告
         errors = []
         warnings = []
 
-        for i, line in enumerate(lines, 1):
+        for i, line in enumerate(all_lines, 1):
             line = line.strip()
             if 'error' in line.lower() or 'fail' in line.lower():
                 errors.append({
@@ -52,7 +67,7 @@ class LogParserPlugin(BasePlugin):
             plugin_name=self.name,
             version=self.get_version(),
             analysis_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            log_files=[os.path.basename(log_file)],
+            log_files=[os.path.basename(f) for f in log_files],
             plugin_type=self.get_plugin_type(),
             description=self.get_chinese_description()
         )
@@ -61,7 +76,7 @@ class LogParserPlugin(BasePlugin):
 
         # 添加统计概览
         result.add_stats("分析概览", [
-            StatsItem(label="总行数", value=len(lines), unit="行", severity="info", icon="file-text"),
+            StatsItem(label="总行数", value=len(all_lines), unit="行", severity="info", icon="file-text"),
             StatsItem(label="错误数", value=len(errors), unit="个", severity="error", icon="x-circle"),
             StatsItem(label="警告数", value=len(warnings), unit="个", severity="warning", icon="alert-triangle")
         ])

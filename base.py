@@ -382,17 +382,22 @@ class BasePlugin(ABC):
         self._log_callback = callback
 
     def log(self, message: str) -> None:
-        """使用回调函数记录日志。"""
+        """记录日志，输出到回调或控制台。"""
+        log_msg = f"[{self.name}] {message}"
         if self._log_callback:
-            self._log_callback(f"[{self.name}] {message}")
+            self._log_callback(log_msg)
+        else:
+            # 无回调时直接打印到控制台
+            import logging
+            logging.getLogger('plugins').info(log_msg)
 
     @abstractmethod
-    def analyze(self, log_file: str) -> AnalysisResult:
+    def analyze(self, log_path: str) -> AnalysisResult:
         """
-        分析日志文件。
+        分析日志文件或目录。
 
         Args:
-            log_file: 要分析的日志文件路径。
+            log_path: 要分析的路径。可以是单个日志文件路径，或包含日志文件的目录路径。
 
         Returns:
             包含分析结果的 AnalysisResult。

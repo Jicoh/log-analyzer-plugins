@@ -17,19 +17,36 @@ from plugins.base import (
 class LogStatisticsPlugin(BasePlugin):
     """日志统计插件。"""
 
-    def analyze(self, log_file: str) -> AnalysisResult:
+    def analyze(self, log_path: str) -> AnalysisResult:
         """分析日志统计信息。"""
         self.log("开始统计分析...")
 
-        # 读取日志
-        with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
-            lines = f.readlines()
+        # 判断是文件还是目录
+        if os.path.isfile(log_path):
+            log_files = [log_path]
+        else:
+            # 目录：查找所有日志文件
+            log_files = []
+            for root, dirs, files in os.walk(log_path):
+                for f in files:
+                    if f.endswith('.log') or f.endswith('.txt'):
+                        log_files.append(os.path.join(root, f))
 
-        self.log(f"读取到 {len(lines)} 行日志")
+        self.log(f"发现 {len(log_files)} 个日志文件")
+
+        # 读取所有日志内容
+        all_lines = []
+        total_size = 0
+        for log_file in log_files:
+            with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
+                all_lines.extend(f.readlines())
+            total_size += os.path.getsize(log_file)
+
+        self.log(f"读取到 {len(all_lines)} 行日志")
 
         # 统计日志级别分布
         level_counter = Counter()
-        for line in lines:
+        for line in all_lines:
             line_upper = line.upper()
             for level in ['ERROR', 'WARNING', 'INFO', 'DEBUG']:
                 if level in line_upper:
@@ -38,7 +55,7 @@ class LogStatisticsPlugin(BasePlugin):
 
         # 统计时间分布
         hour_counter = Counter()
-        for line in lines:
+        for line in all_lines:
             match = re.search(r'(\d{2}):\d{2}:\d{2}', line)
             if match:
                 hour = match.group(1)
@@ -52,7 +69,7 @@ class LogStatisticsPlugin(BasePlugin):
             plugin_name=self.name,
             version=self.get_version(),
             analysis_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            log_files=[os.path.basename(log_file)],
+            log_files=[os.path.basename(f) for f in log_files],
             plugin_type=self.get_plugin_type(),
             description=self.get_chinese_description()
         )
@@ -60,10 +77,9 @@ class LogStatisticsPlugin(BasePlugin):
         result = AnalysisResult(meta=meta)
 
         # 添加统计概览
-        file_size = os.path.getsize(log_file)
         result.add_stats("文件信息", [
-            StatsItem(label="总行数", value=len(lines), unit="行", severity="info", icon="file-text"),
-            StatsItem(label="文件大小", value=f"{file_size/1024:.1f}", unit="KB", severity="info", icon="hard-drive")
+            StatsItem(label="总行数", value=len(all_lines), unit="行", severity="info", icon="file-text"),
+            StatsItem(label="文件大小", value=f"{total_size/1024:.1f}", unit="KB", severity="info", icon="hard-drive")
         ])
 
         # 添加日志级别分布图表

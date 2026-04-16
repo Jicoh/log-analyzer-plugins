@@ -46,26 +46,40 @@ my_plugin/
 from plugins.base import BasePlugin, AnalysisResult, ResultMeta, StatsItem
 
 class MyPlugin(BasePlugin):
-    def analyze(self, log_file: str) -> AnalysisResult:
+    def analyze(self, log_path: str) -> AnalysisResult:
         import os
         from datetime import datetime
 
-        with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
-            lines = f.readlines()
+        # 判断是文件还是目录
+        if os.path.isfile(log_path):
+            log_files = [log_path]
+        else:
+            # 目录：查找所有日志文件
+            log_files = []
+            for root, dirs, files in os.walk(log_path):
+                for f in files:
+                    if f.endswith('.log') or f.endswith('.txt'):
+                        log_files.append(os.path.join(root, f))
+
+        # 分析所有日志文件
+        all_lines = []
+        for log_file in log_files:
+            with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
+                all_lines.extend(f.readlines())
 
         meta = ResultMeta(
             plugin_id=self.id,
             plugin_name=self.name,
             version=self.get_version(),
             analysis_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            log_files=[os.path.basename(log_file)],
+            log_files=[os.path.basename(f) for f in log_files],
             plugin_type=self.get_plugin_type()
         )
 
         result = AnalysisResult(meta=meta)
 
         result.add_stats("分析概览", [
-            StatsItem(label="总行数", value=len(lines), severity="info", icon="file-text"),
+            StatsItem(label="总行数", value=len(all_lines), severity="info", icon="file-text"),
             StatsItem(label="错误数", value=5, severity="error", icon="x-circle"),
         ])
 
