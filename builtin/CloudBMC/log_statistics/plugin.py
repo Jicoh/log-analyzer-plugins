@@ -63,13 +63,20 @@ class LogStatisticsPlugin(BasePlugin):
 
         self.log("统计完成")
 
+        # 记录相对于 log_path 的相对路径（统一路径分隔符）
+        rel_log_files = []
+        for f in log_files:
+            rel_path = os.path.relpath(f, log_path)
+            rel_path = rel_path.replace('\\', '/')
+            rel_log_files.append(rel_path)
+
         # 创建结果
         meta = ResultMeta(
             plugin_id=self.id,
             plugin_name=self.name,
             version=self.get_version(),
             analysis_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            log_files=[os.path.basename(f) for f in log_files],
+            log_files=rel_log_files,
             plugin_type=self.get_plugin_type(),
             description=self.get_chinese_description()
         )
