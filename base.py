@@ -385,7 +385,7 @@ class BasePlugin(ABC):
     """
 
     def __init__(self):
-        self._log_callback: Optional[Callable[[str], None]] = None
+        self._log_callback: Optional[Callable[[str, str], None]] = None
         self._id: str = ""
         self._name: str = ""
         self._plugin_type: str = ""
@@ -429,19 +429,27 @@ class BasePlugin(ABC):
         if description is not None:
             self._description = description
 
-    def set_log_callback(self, callback: Callable[[str], None]) -> None:
-        """设置日志记录回调函数。"""
+    def set_log_callback(self, callback: Callable[[str, str], None]) -> None:
+        """设置日志记录回调函数。回调函数接受 message 和 level 两个参数。"""
         self._log_callback = callback
 
-    def log(self, message: str) -> None:
-        """记录日志，输出到回调或控制台。"""
+    def log(self, message: str, level: str = "info") -> None:
+        """记录日志，输出到回调或控制台。
+
+        Args:
+            message: 日志消息
+            level: 日志级别，可选值：info、warning、error、success，默认为 info
+        """
         log_msg = f"[{self.name}] {message}"
         if self._log_callback:
-            self._log_callback(log_msg)
+            self._log_callback(log_msg, level)
         else:
             # 无回调时直接打印到控制台
             import logging
-            logging.getLogger('plugins').info(log_msg)
+            # success 映射为 info（Python logging 没有 success）
+            log_level = level if level in ['info', 'warning', 'error'] else 'info'
+            log_method = getattr(logging.getLogger('plugins'), log_level, logging.getLogger('plugins').info)
+            log_method(log_msg)
 
     @abstractmethod
     def analyze(self, log_path: str) -> AnalysisResult:
