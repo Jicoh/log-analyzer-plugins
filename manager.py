@@ -270,9 +270,11 @@ def get_plugin_manager(custom_dirs: Optional[List[str]] = None) -> PluginManager
             root_dir = os.path.dirname(sys.executable)
         else:
             # 源码运行时
-            root_dir = os.path.dirname(os.path.abspath(__file__))
-        builtin_dir = os.path.join(root_dir, 'plugins', 'builtin')
-        plugin_dirs = [builtin_dir]
+            root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        plugin_dirs = [
+            os.path.join(root_dir, 'plugins', 'builtin'),
+            os.path.join(root_dir, 'custom_plugins')
+        ]
         if custom_dirs:
             plugin_dirs.extend(custom_dirs)
         _plugin_manager = PluginManager(plugin_dirs=plugin_dirs)
