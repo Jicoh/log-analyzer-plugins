@@ -22,7 +22,12 @@ class PluginManager:
         self._plugin_dirs = plugin_dirs
 
         if self._plugin_dirs is None:
-            root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            if getattr(sys, 'frozen', False):
+                # exe运行时
+                root_dir = os.path.dirname(sys.executable)
+            else:
+                # 源码运行时
+                root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             self._plugin_dirs = [
                 os.path.join(root_dir, 'plugins', 'builtin'),
                 os.path.join(root_dir, 'custom_plugins')
@@ -260,8 +265,13 @@ def get_plugin_manager(custom_dirs: Optional[List[str]] = None) -> PluginManager
     """获取全局插件管理器实例。"""
     global _plugin_manager
     if _plugin_manager is None:
-        root_dir = os.path.dirname(os.path.abspath(__file__))
-        builtin_dir = os.path.join(root_dir, 'builtin')
+        if getattr(sys, 'frozen', False):
+            # exe运行时
+            root_dir = os.path.dirname(sys.executable)
+        else:
+            # 源码运行时
+            root_dir = os.path.dirname(os.path.abspath(__file__))
+        builtin_dir = os.path.join(root_dir, 'plugins', 'builtin')
         plugin_dirs = [builtin_dir]
         if custom_dirs:
             plugin_dirs.extend(custom_dirs)
