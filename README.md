@@ -402,8 +402,8 @@ HTML 渲染器（`plugins/renderer/html_renderer.py`）将 JSON 转换为静态 
 4. 图标使用 Feather Icons
 
 **输出文件：**
-- JSON: `data/plugin_output/{timestamp}_log/plugin_result.json`
-- HTML: `data/plugin_output/{timestamp}_log/plugin_result.html`
+- JSON: `data/analysis_output/{timestamp}_log/plugin_result.json`
+- HTML: `data/analysis_output/{timestamp}_log/plugin_result.html`
 
 ### Section 类型
 
@@ -527,7 +527,7 @@ result.add_raw("自定义数据", {"key": "value"})
 from plugins.renderer import render_html
 
 # 从JSON文件生成HTML（保存在JSON同目录）
-html_path = render_html('data/plugin_output/xxx/plugin_result.json')
+html_path = render_html('data/analysis_output/xxx/plugin_result.json')
 print(f'HTML文件: {html_path}')
 
 # 或使用HtmlRenderer类
@@ -540,8 +540,8 @@ html_path = renderer.render_to_file('path/to/plugin_result.json')
 
 ### 输出文件
 
-- JSON: `data/plugin_output/xxx/plugin_result.json`
-- HTML: `data/plugin_output/xxx/plugin_result.html`
+- JSON: `data/analysis_output/xxx/plugin_result.json`
+- HTML: `data/analysis_output/xxx/plugin_result.html`
 
 ### HTML特性
 
