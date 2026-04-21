@@ -23,15 +23,21 @@ class PluginManager:
 
         if self._plugin_dirs is None:
             if getattr(sys, 'frozen', False):
-                # exe运行时
-                root_dir = os.path.dirname(sys.executable)
+                # exe运行时，内部资源在 sys._MEIPASS
+                internal_dir = sys._MEIPASS
+                # 外部自定义插件在 exe 所在目录
+                external_dir = os.path.dirname(sys.executable)
+                self._plugin_dirs = [
+                    os.path.join(internal_dir, 'plugins', 'builtin'),
+                    os.path.join(external_dir, 'custom_plugins')
+                ]
             else:
                 # 源码运行时
                 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            self._plugin_dirs = [
-                os.path.join(root_dir, 'plugins', 'builtin'),
-                os.path.join(root_dir, 'custom_plugins')
-            ]
+                self._plugin_dirs = [
+                    os.path.join(root_dir, 'plugins', 'builtin'),
+                    os.path.join(root_dir, 'custom_plugins')
+                ]
 
     def load_plugins(self) -> int:
         """扫描并加载所有插件。"""
@@ -266,15 +272,21 @@ def get_plugin_manager(custom_dirs: Optional[List[str]] = None) -> PluginManager
     global _plugin_manager
     if _plugin_manager is None:
         if getattr(sys, 'frozen', False):
-            # exe运行时
-            root_dir = os.path.dirname(sys.executable)
+            # exe运行时，内部资源在 sys._MEIPASS
+            internal_dir = sys._MEIPASS
+            # 外部自定义插件在 exe 所在目录
+            external_dir = os.path.dirname(sys.executable)
+            plugin_dirs = [
+                os.path.join(internal_dir, 'plugins', 'builtin'),
+                os.path.join(external_dir, 'custom_plugins')
+            ]
         else:
             # 源码运行时
             root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        plugin_dirs = [
-            os.path.join(root_dir, 'plugins', 'builtin'),
-            os.path.join(root_dir, 'custom_plugins')
-        ]
+            plugin_dirs = [
+                os.path.join(root_dir, 'plugins', 'builtin'),
+                os.path.join(root_dir, 'custom_plugins')
+            ]
         if custom_dirs:
             plugin_dirs.extend(custom_dirs)
         _plugin_manager = PluginManager(plugin_dirs=plugin_dirs)
