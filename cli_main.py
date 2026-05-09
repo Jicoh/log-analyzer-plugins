@@ -12,14 +12,28 @@ import sys
 import os
 import json
 import argparse
+import importlib.util
 
-# 添加路径（支持源码运行和打包后运行）
-if getattr(sys, 'frozen', False):
-    sys.path.insert(0, sys._MEIPASS)
-else:
-    # cli_main.py位于plugins/目录下，需要将plugins/的上级加入sys.path
-    # 使 from plugins.xxx 的绝对导入可用
-    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# 确保plugins包可被导入
+if not getattr(sys, 'frozen', False):
+    cli_dir = os.path.dirname(os.path.abspath(__file__))
+    parent_dir = os.path.dirname(cli_dir)
+    if parent_dir not in sys.path:
+        sys.path.insert(0, parent_dir)
+
+    # 独立仓库运行时，当前目录可能不在名为plugins的父目录下
+    # 检测并注册当前目录为plugins包
+    try:
+        import plugins
+    except ImportError:
+        init_path = os.path.join(cli_dir, '__init__.py')
+        spec = importlib.util.spec_from_file_location(
+            'plugins', init_path,
+            submodule_search_locations=[cli_dir]
+        )
+        module = importlib.util.module_from_spec(spec)
+        sys.modules['plugins'] = module
+        spec.loader.exec_module(module)
 
 from plugins.manager import PluginManager
 

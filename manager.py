@@ -9,7 +9,7 @@ import logging
 import importlib.util
 from typing import Dict, List, Optional, Any
 
-from plugins.base import BasePlugin, AnalysisResult, count_severity
+from .base import BasePlugin, AnalysisResult, count_severity
 
 logger = logging.getLogger('plugins')
 
@@ -300,7 +300,9 @@ def get_plugin_manager(custom_dirs: Optional[List[str]] = None) -> PluginManager
     """获取全局插件管理器实例。"""
     global _plugin_manager
     if _plugin_manager is None:
-        _plugin_manager = PluginManager(custom_dirs=custom_dirs)
+        _plugin_manager = PluginManager()
+        if custom_dirs:
+            _plugin_manager._plugin_dirs.extend(custom_dirs)
         count = _plugin_manager.load_plugins()
         logger.info(f"已加载 {count} 个插件")
     return _plugin_manager

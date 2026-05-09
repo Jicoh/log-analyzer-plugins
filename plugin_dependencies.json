@@ -1,7 +1,0 @@
-{
-    "dependencies": [
-        "pandas",
-        "dateutil",
-        "chardet"
-    ]
-}

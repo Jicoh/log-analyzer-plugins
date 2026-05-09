@@ -1,15 +1,15 @@
 """
-Plugin system for AI Log Analyzer.
+Plugin system
 """
 
-from plugins.base import (
+from .base import (
     BasePlugin, Severity, AnalysisResult, ResultMeta,
     StatsItem, StatsSection, TableSection, TableColumn, TimelineEvent, TimelineSection,
     CardItem, CardsSection, ChartData, ChartSection, SearchBoxSection, RawSection,
     SectionType
 )
-from plugins.manager import PluginManager, get_plugin_manager
-from plugins.renderer import HtmlRenderer, render_html
+from .manager import PluginManager, get_plugin_manager
+from .renderer import HtmlRenderer, render_html
 
 __all__ = [
     'BasePlugin',

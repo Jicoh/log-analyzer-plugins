@@ -16,3 +16,20 @@ if getattr(sys, 'frozen', False):
     meipass = sys._MEIPASS
     if meipass not in sys.path:
         sys.path.insert(0, meipass)
+
+    # 确保plugins包可导入（PyInstaller打包后可能缺少正确的包结构）
+    if 'plugins' not in sys.modules:
+        try:
+            import plugins
+        except ImportError:
+            import importlib.util
+            plugins_dir = os.path.join(meipass, 'plugins')
+            init_path = os.path.join(plugins_dir, '__init__.py')
+            if os.path.exists(init_path):
+                spec = importlib.util.spec_from_file_location(
+                    'plugins', init_path,
+                    submodule_search_locations=[plugins_dir]
+                )
+                module = importlib.util.module_from_spec(spec)
+                sys.modules['plugins'] = module
+                spec.loader.exec_module(module)

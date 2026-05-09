@@ -7,7 +7,7 @@
 import os
 import json
 from jinja2 import Template
-from plugins.base import count_severity
+from ..base import count_severity
 
 TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), 'template.html')
 BATCH_TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), 'batch_template.html')
