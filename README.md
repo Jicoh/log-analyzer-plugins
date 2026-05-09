@@ -34,7 +34,7 @@ my_plugin/
 ```
 
 字段说明：
-- `id`: 插件唯一标识
+- `id`: 插件唯一标识，格式为插件类型_编号
 - `name`: 插件显示名称
 - `version`: 版本号
 - `description`: 中文描述
@@ -46,28 +46,19 @@ my_plugin/
 from plugins.base import BasePlugin, AnalysisResult, ResultMeta, StatsItem
 
 class MyPlugin(BasePlugin):
-    def analyze(self, log_path: str) -> AnalysisResult:
-        import os
+    def analyze(self, log_content: Dict[str, str]) -> AnalysisResult:
         from datetime import datetime
 
-        # 场景1：分析目录中的所有日志文件
-        log_files = []
-        for root, dirs, files in os.walk(log_path):
-            for f in files:
-                if f.endswith('.log') or f.endswith('.txt'):
-                    log_files.append(os.path.join(root, f))
-
-        # 场景2：分析特定文件名（如果插件只分析特定文件）
-        # target_file = os.path.join(log_path, "system.log")
-        # if os.path.exists(target_file):
-        #     log_files = [target_file]
+        # log_content 是 {"相对路径": "文件内容"} 字典
+        # 例如: {"system.log": "日志内容...", "sub/error.log": "错误日志..."}
+        log_files = list(log_content.keys())
 
         meta = ResultMeta(
             plugin_id=self.id,
             plugin_name=self.name,
             version=self.get_version(),
             analysis_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            log_files=[os.path.basename(f) for f in log_files],
+            log_files=log_files,
             plugin_type=self.get_plugin_type()
         )
 
@@ -80,18 +71,75 @@ class MyPlugin(BasePlugin):
 plugin_class = MyPlugin
 ```
 
+**`analyze()` 接口说明：**
+
+```python
+def analyze(self, log_content: Dict[str, str]) -> AnalysisResult:
+    """
+    分析日志内容。
+
+    Args:
+        log_content: {"日志名/相对路径": "日志内容"} 字典。
+            - 单文件时: {"system.log": "文件全部内容"}
+            - 目录时: {"system.log": "...", "sub/error.log": "..."}，键为相对路径
+
+    Returns:
+        包含分析结果的 AnalysisResult。
+    """
+```
+
+> 注意：插件不再接收文件路径，而是接收已读取的日志内容字典。调用方负责通过
+> `read_log_files_to_content(path)` 读取文件。
+
 ## API 文档
 
 ### PluginManager
 
 ```python
 from plugins import get_plugin_manager
+from src.utils.file_utils import read_log_files_to_content
 
 manager = get_plugin_manager()
 plugins = manager.get_all_plugins()
 categories = manager.get_plugins_categories()
-result = manager.run_analysis(["log_parser"], "/path/to/logfile")
+
+# 读取日志内容
+log_content = read_log_files_to_content("/path/to/logfile_or_dir")
+# log_content 格式: {"system.log": "文件内容...", "sub/error.log": "错误内容..."}
+
+# system模式：Web/主程序使用，返回 {plugin_id: {'meta': ..., 'sections': ...}}
+result = manager.run_analysis('system', ["CloudBMC_00001"], log_content)
+
+# cli模式：CLI外部调用，返回 [task_name, bmc_ip, status, description, log_detail, date]
+result = manager.run_analysis('cli', ["CloudBMC_00001"], log_content,
+                              task_name="任务1", bmc_ip="192.168.1.1", date="2026-05-09")
 ```
+
+#### `run_analysis()` 方法签名
+
+```python
+def run_analysis(self, source: str, plugin_ids: List[str],
+                 log_content: Dict[str, str],
+                 task_name: str = "", bmc_ip: str = "", date: str = "",
+                 log_callback: Optional[callable] = None) -> Any:
+```
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| source | str | 调用来源：`'system'`（Web/主程序）或 `'cli'`（命令行） |
+| plugin_ids | List[str] | 要运行的插件 ID 列表 |
+| log_content | Dict[str, str] | `{"日志名/相对路径": "日志内容"}` 字典 |
+| task_name | str | 任务名称（cli模式使用，默认空） |
+| bmc_ip | str | BMC IP地址（cli模式使用，默认空） |
+| date | str | 日期（cli模式使用，默认空） |
+| log_callback | callable | 日志回调函数（可选） |
+
+**返回值：**
+- `source='system'` 时：`{plugin_id: {'meta': ..., 'sections': ...}}`
+- `source='cli'` 时：`[task_name, bmc_ip, status, description, log_detail, date]`
+  - `status`: `'ERROR'`（有错误）或 `'OK'`
+  - `description`: 错误/警告摘要文本
+  - `log_detail`: `{'errors': int, 'warnings': int, 'items': [...]}` 或空字典
 
 ### AnalysisResult 格式
 
@@ -99,13 +147,13 @@ result = manager.run_analysis(["log_parser"], "/path/to/logfile")
 
 ```json
 {
-  "log_parser": {
+  "CloudBMC_00001": {
     "meta": {
-      "plugin_id": "log_parser",
+      "plugin_id": "CloudBMC_00001",
       "plugin_name": "Log Parser",
       "version": "2.0",
-      "analysis_time": "2026-04-13 16:44:19",
-      "log_files": ["server.log"],
+      "analysis_time": "2026-05-09 10:00:00",
+      "log_files": ["system.log", "sub/error.log"],
       "plugin_type": "CloudBMC",
       "description": "日志解析插件，提取错误和警告信息"
     },
@@ -550,12 +598,86 @@ html_path = renderer.render_to_file('path/to/plugin_result.json')
 - 支持所有Section类型渲染
 - 按插件分组展示
 
+## 独立CLI工具
+
+插件系统提供独立的命令行入口，可用于脚本集成和外部调用。
+
+### 用法
+
+```bash
+# 列出可用插件
+python plugins/cli_main.py plugin list
+
+# 执行分析（从stdin读取JSON格式的日志内容）
+echo '{"system.log": "日志内容..."}' | python plugins/cli_main.py analyze --plugin-id CloudBMC_00001
+
+# 带额外参数的分析
+echo '{"system.log": "日志内容..."}' | python plugins/cli_main.py analyze \
+    --plugin-id CloudBMC_00001 \
+    --task-name "巡检任务" \
+    --bmc-ip "192.168.1.100" \
+    --date "2026-05-09"
+```
+
+### 输入格式
+
+从 stdin 读取 JSON 格式的日志内容字典：
+
+```json
+{
+    "system.log": "日志文件全部内容...",
+    "sub/error.log": "错误日志内容..."
+}
+```
+
+键为日志文件名或相对路径，值为文件内容。
+
+### 输出格式
+
+分析结果以 JSON 数组输出到 stdout，格式为：
+
+```json
+["任务名称", "192.168.1.100", "ERROR", "错误数: 15; 警告数: 23", {"errors": 15, "warnings": 23, "items": [...]}, "2026-05-09"]
+```
+
+数组元素依次为：`[task_name, bmc_ip, status, description, log_detail, date]`
+
+| 索引 | 字段 | 类型 | 说明 |
+|------|------|------|------|
+| 0 | task_name | string | 任务名称 |
+| 1 | bmc_ip | string | BMC IP地址 |
+| 2 | status | string | 状态：`'OK'` 或 `'ERROR'` |
+| 3 | description | string | 错误/警告摘要（最长1000字符） |
+| 4 | log_detail | object | `{'errors': int, 'warnings': int, 'items': [...]}` 或 `{}` |
+| 5 | date | string | 日期 |
+
+## 日志内容读取
+
+`read_log_files_to_content()` 工具函数将文件/目录读取为日志内容字典，供 `run_analysis()` 使用：
+
+```python
+from src.utils.file_utils import read_log_files_to_content
+
+# 单文件
+log_content = read_log_files_to_content("/path/to/system.log")
+# 返回: {"system.log": "文件内容..."}
+
+# 目录（递归读取所有有效日志文件）
+log_content = read_log_files_to_content("/path/to/log_dir/")
+# 返回: {"system.log": "...", "sub/error.log": "..."}
+```
+
+- 单文件时，键为文件名（`os.path.basename`）
+- 目录时，键为相对路径（如 `sub/error.log`），使用 `/` 分隔
+- 仅读取 `is_valid_log_file()` 判定的有效日志文件
+- 编码为 UTF-8，忽略解码错误
+
 ## 内置插件
 
-### log_parser
+### CloudBMC_00001 (log_parser)
 
 解析日志文件，提取错误和警告信息。
 
-### log_statistics
+### CloudBMC_00002 (log_statistics)
 
 分析日志统计信息，包括时间分布和日志级别分布。

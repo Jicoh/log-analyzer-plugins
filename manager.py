@@ -5,13 +5,13 @@
 import os
 import sys
 import json
+import logging
 import importlib.util
 from typing import Dict, List, Optional, Any
 
-from plugins.base import BasePlugin, AnalysisResult
-from src.utils import get_logger
+from plugins.base import BasePlugin, AnalysisResult, count_severity
 
-logger = get_logger('plugins')
+logger = logging.getLogger('plugins')
 
 
 class PluginManager:
@@ -22,21 +22,18 @@ class PluginManager:
         self._plugin_dirs = plugin_dirs
 
         if self._plugin_dirs is None:
+            # plugins目录（manager.py所在目录）
+            plugins_dir = os.path.dirname(os.path.abspath(__file__))
             if getattr(sys, 'frozen', False):
-                # exe运行时，内部资源在 sys._MEIPASS
-                internal_dir = sys._MEIPASS
-                # 外部自定义插件在 exe 所在目录
-                external_dir = os.path.dirname(sys.executable)
+                # exe运行时，内置插件在内部资源，自定义插件在exe同级目录
                 self._plugin_dirs = [
-                    os.path.join(internal_dir, 'plugins', 'builtin'),
-                    os.path.join(external_dir, 'custom_plugins')
+                    os.path.join(sys._MEIPASS, 'plugins', 'builtin'),
+                    os.path.join(os.path.dirname(sys.executable), 'custom_plugins')
                 ]
             else:
-                # 源码运行时
-                root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
                 self._plugin_dirs = [
-                    os.path.join(root_dir, 'plugins', 'builtin'),
-                    os.path.join(root_dir, 'custom_plugins')
+                    os.path.join(plugins_dir, 'builtin'),
+                    os.path.join(plugins_dir, '..', 'custom_plugins')
                 ]
 
     def load_plugins(self) -> int:
@@ -179,18 +176,25 @@ class PluginManager:
             descriptions.append(desc)
         return "\n".join(descriptions)
 
-    def run_analysis(self, plugin_ids: List[str], log_path: str,
-                     log_callback: Optional[callable] = None) -> Dict[str, Any]:
+    def run_analysis(self, source: str, plugin_ids: List[str],
+                     log_content: Dict[str, str],
+                     task_name: str = "", bmc_ip: str = "", date: str = "",
+                     log_callback: Optional[callable] = None) -> Any:
         """
         使用指定插件运行分析。
 
         Args:
+            source: 调用来源，'cli' 或 'system'
             plugin_ids: 要运行的插件 ID 列表
-            log_path: 要分析的路径（文件或目录）
+            log_content: {"日志名": "日志内容"} 字典
+            task_name: 任务名称（cli模式使用）
+            bmc_ip: BMC IP地址（cli模式使用）
+            date: 日期（cli模式使用）
             log_callback: 可选的日志回调函数
 
         Returns:
-            合并后的结果字典
+            source='system' 时返回 {plugin_id: {'meta': ..., 'sections': ...}}
+            source='cli' 时返回 [task_name, bmc_ip, status, description, log_detail, date]
         """
         if not plugin_ids:
             raise ValueError("未指定要分析的插件")
@@ -199,11 +203,10 @@ class PluginManager:
         for plugin_id in plugin_ids:
             plugin = self.get_plugin(plugin_id)
             if plugin:
-                # 设置日志回调
                 if log_callback:
                     plugin.set_log_callback(log_callback)
                 try:
-                    result = plugin.analyze(log_path)
+                    result = plugin.analyze(log_content)
                     results.append(result)
                 except Exception as e:
                     logger.error(f"运行插件 {plugin_id} 时出错: {e}")
@@ -211,38 +214,64 @@ class PluginManager:
         if not results:
             raise RuntimeError("没有插件成功执行")
 
+        if source == 'cli':
+            return self.convert_to_cli_result(results, task_name, bmc_ip, date)
         return self.combine_results(results)
 
-    def run_analysis_multiple_dirs(self, plugin_ids: List[str], log_paths: List[str],
-                                    log_callback: Optional[callable] = None) -> Dict[str, Any]:
-        """
-        使用指定插件分析多个路径（目录或文件）。
+    def convert_to_cli_result(self, results: List[AnalysisResult],
+                              task_name: str, bmc_ip: str, date: str) -> list:
+        """将AnalysisResult列表转换为CLI返回格式。"""
+        total_errors = 0
+        total_warnings = 0
+        description_parts = []
+        log_detail = {}
 
-        Args:
-            plugin_ids: 要运行的插件 ID 列表
-            log_paths: 要分析的路径列表（每个可以是文件或目录）
-            log_callback: 可选的日志回调函数
+        for result in results:
+            for section in result.sections:
+                section_dict = section.to_dict()
+                counts = count_severity([section_dict])
+                total_errors += counts['errors']
+                total_warnings += counts['warnings']
 
-        Returns:
-            合并后的结果字典
-        """
-        all_results = []
-        for log_path in log_paths:
-            for plugin_id in plugin_ids:
-                plugin = self.get_plugin(plugin_id)
-                if plugin:
-                    if log_callback:
-                        plugin.set_log_callback(log_callback)
-                    try:
-                        result = plugin.analyze(log_path)
-                        all_results.append(result)
-                    except Exception as e:
-                        logger.error(f"在 {log_path} 上运行插件 {plugin_id} 时出错: {e}")
+                # 从stats区块提取错误/警告摘要
+                if section_dict.get('type') == 'stats':
+                    for item in section_dict.get('items', []):
+                        if item.get('severity') in ('error', 'warning'):
+                            description_parts.append(f"{item['label']}: {item['value']}")
 
-        if not all_results:
-            raise RuntimeError("没有插件成功执行")
+                # 从table区块提取错误/警告详情
+                if section_dict.get('type') == 'table' and section_dict.get('severity') in ('error', 'warning'):
+                    for row in section_dict.get('rows', [])[:10]:
+                        msg = row.get('message', row.get('line', ''))
+                        if msg:
+                            description_parts.append(str(msg)[:100])
 
-        return self.combine_results(all_results)
+        status = 'ERROR' if total_errors > 0 else 'OK'
+        description = '; '.join(description_parts)[:1000]
+
+        if total_errors > 0 or total_warnings > 0:
+            log_detail = {'errors': total_errors, 'warnings': total_warnings}
+            # 填充详细错误信息，限制序列化后长度3000
+            detail_items = []
+            for result in results:
+                for section in result.sections:
+                    section_dict = section.to_dict()
+                    if section_dict.get('type') == 'table' and section_dict.get('severity') in ('error', 'warning'):
+                        for row in section_dict.get('rows', [])[:20]:
+                            detail_items.append(row)
+            if detail_items:
+                log_detail['items'] = detail_items
+            # 检查长度限制
+            import json as _json
+            detail_str = _json.dumps(log_detail, ensure_ascii=False)
+            if len(detail_str) > 3000:
+                # 截断items
+                while len(_json.dumps(log_detail, ensure_ascii=False)) > 3000 and log_detail.get('items'):
+                    log_detail['items'] = log_detail['items'][:-1]
+                if not log_detail.get('items'):
+                    log_detail.pop('items', None)
+
+        return [task_name, bmc_ip, status, description, log_detail, date]
 
     def combine_results(self, results: List[AnalysisResult]) -> Dict[str, Any]:
         """合并多个分析结果，按插件 ID 区分。"""
@@ -271,25 +300,7 @@ def get_plugin_manager(custom_dirs: Optional[List[str]] = None) -> PluginManager
     """获取全局插件管理器实例。"""
     global _plugin_manager
     if _plugin_manager is None:
-        if getattr(sys, 'frozen', False):
-            # exe运行时，内部资源在 sys._MEIPASS
-            internal_dir = sys._MEIPASS
-            # 外部自定义插件在 exe 所在目录
-            external_dir = os.path.dirname(sys.executable)
-            plugin_dirs = [
-                os.path.join(internal_dir, 'plugins', 'builtin'),
-                os.path.join(external_dir, 'custom_plugins')
-            ]
-        else:
-            # 源码运行时
-            root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            plugin_dirs = [
-                os.path.join(root_dir, 'plugins', 'builtin'),
-                os.path.join(root_dir, 'custom_plugins')
-            ]
-        if custom_dirs:
-            plugin_dirs.extend(custom_dirs)
-        _plugin_manager = PluginManager(plugin_dirs=plugin_dirs)
+        _plugin_manager = PluginManager(custom_dirs=custom_dirs)
         count = _plugin_manager.load_plugins()
         logger.info(f"已加载 {count} 个插件")
     return _plugin_manager

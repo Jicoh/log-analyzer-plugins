@@ -1,5 +1,5 @@
 {
-    "id": "log_parser",
+    "id": "CloudBMC_00001",
     "name": "Log Parser",
     "version": "2.0",
     "description": "日志解析插件，提取错误和警告信息",

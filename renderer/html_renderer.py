@@ -113,8 +113,10 @@ class HtmlRenderer:
         Returns:
             HTML字符串
         """
+        # 按插件ID排序
+        sorted_data = dict(sorted(data.items()))
         return self.template.render(
-            result=data,
+            result=sorted_data,
             get_severity_color=get_severity_color,
             get_chart_color=get_chart_color,
             get_chart_hex_color=get_chart_hex_color,

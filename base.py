@@ -452,12 +452,12 @@ class BasePlugin(ABC):
             log_method(log_msg)
 
     @abstractmethod
-    def analyze(self, log_path: str) -> AnalysisResult:
+    def analyze(self, log_content: Dict[str, str]) -> AnalysisResult:
         """
-        分析日志文件或目录。
+        分析日志内容。
 
         Args:
-            log_path: 要分析的路径。可以是单个日志文件路径，或包含日志文件的目录路径。
+            log_content: {"日志名": "日志内容"} 字典
 
         Returns:
             包含分析结果的 AnalysisResult。

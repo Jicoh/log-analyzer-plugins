@@ -249,7 +249,7 @@
                     </span>
                     <span class="plugin-desc">查看所有插件分析概览</span>
                 </a>
-                {% for plugin_id, plugin_data in result.items() %}
+                {% for plugin_id, plugin_data in result|dictsort %}
                 <a href="#plugin-{{ plugin_id }}" class="nav-item" data-plugin="{{ plugin_id }}">
                     <span class="plugin-name">
                         <i class="bi bi-puzzle"></i>
@@ -291,7 +291,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for plugin_id, plugin_data in result.items() %}
+                                {% for plugin_id, plugin_data in result|dictsort %}
                                 {% set ns = namespace(warning_count=0, error_count=0) %}
                                 {% for section in plugin_data['sections'] %}
                                     {% if section['type'] == 'stats' %}
@@ -365,7 +365,7 @@
                 </div>
             </div>
 
-            {% for plugin_id, plugin_data in result.items() %}
+            {% for plugin_id, plugin_data in result|dictsort %}
             <div id="plugin-{{ plugin_id }}" class="plugin-section">
                 <div class="plugin-header">
                     <h5>
