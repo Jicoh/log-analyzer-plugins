@@ -4,247 +4,862 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>插件分析结果</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        * { box-sizing: border-box; }
-        html { scroll-behavior: smooth; }
-        body {
-            background-color: #f8f9fa;
-            margin: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        :root {
+            --bg-page: #f5f7fa;
+            --bg-card: #ffffff;
+            --bg-section: #f8fafc;
+            --bg-hover: #f1f5f9;
+            --text-primary: #1e293b;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --border-color: #e2e8f0;
+            --border-accent: #cbd5e1;
+            --accent-blue: #3b82f6;
+            --accent-green: #22c55e;
+            --accent-red: #ef4444;
+            --accent-yellow: #f59e0b;
+            --accent-cyan: #0891b2;
+            --font-mono: 'IBM Plex Mono', monospace;
+            --font-ui: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+            --radius-sm: 6px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07);
         }
 
-        /* 布局容器 */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: var(--font-ui);
+            background: var(--bg-page);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* Layout */
         .layout-container {
             display: flex;
             min-height: 100vh;
         }
 
-        /* 左侧导航栏 */
+        /* Sidebar */
         .sidebar {
-            width: 220px;
-            background: #fff;
-            border-right: 1px solid #dee2e6;
+            width: 240px;
+            background: var(--bg-card);
+            border-right: 1px solid var(--border-color);
             position: sticky;
             top: 0;
             height: 100vh;
             overflow-y: auto;
             flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
         }
 
         .sidebar-header {
-            padding: 16px;
-            border-bottom: 1px solid #dee2e6;
-            background: #f8f9fa;
+            padding: 20px 16px;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--bg-section);
         }
 
         .sidebar-header h5 {
-            margin: 0;
-            font-size: 1rem;
-            color: #495057;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        .sidebar-header i {
-            margin-right: 8px;
+        .sidebar-header h5 i {
+            width: 18px;
+            height: 18px;
+            color: var(--accent-blue);
         }
 
-        /* 插件导航 */
         .plugin-nav {
-            padding: 8px;
+            padding: 12px;
+            flex: 1;
         }
 
         .nav-item {
-            display: block;
-            padding: 12px 16px;
-            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            padding: 12px 14px;
+            border-radius: var(--radius-md);
             margin-bottom: 4px;
-            color: #495057;
+            color: var(--text-secondary);
             text-decoration: none;
-            transition: all 0.2s;
             cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.15s ease;
         }
 
         .nav-item:hover {
-            background: #e9ecef;
+            background: var(--bg-hover);
+            color: var(--text-primary);
         }
 
         .nav-item.active {
-            background: #0d6efd;
-            color: #fff;
+            background: #eff6ff;
+            color: var(--accent-blue);
+            border-color: #bfdbfe;
         }
 
         .nav-item .plugin-name {
-            display: block;
-            font-weight: 600;
-            font-size: 0.9rem;
-            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+            font-size: 0.875rem;
+            margin-bottom: 2px;
+        }
+
+        .nav-item .plugin-name i {
+            width: 16px;
+            height: 16px;
+            opacity: 0.7;
         }
 
         .nav-item .plugin-desc {
-            display: block;
             font-size: 0.75rem;
-            color: #6c757d;
-            line-height: 1.3;
+            color: var(--text-muted);
+            padding-left: 24px;
+            line-height: 1.4;
         }
 
-        .nav-item.active .plugin-desc {
-            color: rgba(255, 255, 255, 0.8);
-        }
-
-        .nav-item .badge {
-            font-size: 0.65rem;
-            padding: 2px 6px;
-        }
-
-        /* 右侧内容区域 */
+        /* Content Area */
         .content-area {
-            flex-grow: 1;
-            padding: 20px;
+            flex: 1;
+            padding: 24px 32px;
             overflow-y: auto;
         }
 
-        /* 插件结果区块 */
+        /* Plugin Section */
         .plugin-section {
-            background-color: #fff;
-            border-radius: 8px;
-            padding: 20px;
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 24px;
             margin-bottom: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
         }
 
         .plugin-header {
-            border-bottom: 1px solid #eee;
-            padding-bottom: 10px;
-            margin-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 16px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 12px;
         }
 
         .plugin-header h5 {
-            margin-bottom: 4px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        .plugin-header .plugin-description {
-            color: #6c757d;
+        .plugin-header h5 i {
+            width: 20px;
+            height: 20px;
+            color: var(--accent-blue);
+        }
+
+        .plugin-description {
+            color: var(--text-secondary);
             font-size: 0.85rem;
             margin-top: 4px;
         }
 
+        .plugin-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+        }
+
+        .plugin-meta span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .plugin-meta i {
+            width: 14px;
+            height: 14px;
+        }
+
         .section-title {
-            color: #6c757d;
+            color: var(--text-primary);
             font-size: 0.9rem;
-            margin-bottom: 10px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        .stat-item {
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #dee2e6;
-            text-align: center;
+        .section-title i {
+            width: 18px;
+            height: 18px;
+            color: var(--accent-blue);
         }
 
-        .stat-item:hover { box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+        }
 
-        .table-section .table-responsive { max-height: 300px; }
-        .table-section table { font-size: 0.85rem; }
+        .stat-card {
+            background: var(--bg-section);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            border: 1px solid var(--border-color);
+        }
 
-        .chart-container { background: #f8f9fa; padding: 15px; border-radius: 8px; position: relative; }
+        .stat-card.severity-error {
+            border-left: 3px solid var(--accent-red);
+        }
 
-        /* 饼图样式 */
+        .stat-card.severity-warning {
+            border-left: 3px solid var(--accent-yellow);
+        }
+
+        .stat-card.severity-success {
+            border-left: 3px solid var(--accent-green);
+        }
+
+        .stat-card.severity-info {
+            border-left: 3px solid var(--accent-blue);
+        }
+
+        .stat-value {
+            font-family: var(--font-mono);
+            font-size: 1.75rem;
+            font-weight: 600;
+            line-height: 1;
+            margin-bottom: 6px;
+        }
+
+        .stat-value.severity-error { color: var(--accent-red); }
+        .stat-value.severity-warning { color: var(--accent-yellow); }
+        .stat-value.severity-success { color: var(--accent-green); }
+        .stat-value.severity-info { color: var(--accent-blue); }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .stat-label i {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* Table */
+        .table-wrapper {
+            background: var(--bg-card);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+            max-height: 400px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        thead {
+            background: var(--bg-section);
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        th {
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        td {
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border-color);
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--text-primary);
+        }
+
+        tbody tr {
+            transition: background 0.1s ease;
+        }
+
+        tbody tr:hover {
+            background: var(--bg-hover);
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr.row-error {
+            background: #fef2f2;
+        }
+
+        tr.row-error:hover {
+            background: #fee2e2;
+        }
+
+        tr.row-warning {
+            background: #fffbeb;
+        }
+
+        tr.row-warning:hover {
+            background: #fef3c7;
+        }
+
+        /* Badge */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            font-family: var(--font-mono);
+        }
+
+        .badge-error {
+            background: #fef2f2;
+            color: var(--accent-red);
+            border: 1px solid #fecaca;
+        }
+
+        .badge-warning {
+            background: #fffbeb;
+            color: var(--accent-yellow);
+            border: 1px solid #fde68a;
+        }
+
+        .badge-success {
+            background: #f0fdf4;
+            color: var(--accent-green);
+            border: 1px solid #bbf7d0;
+        }
+
+        .badge-info {
+            background: #eff6ff;
+            color: var(--accent-blue);
+            border: 1px solid #bfdbfe;
+        }
+
+        /* Chart */
+        .chart-container {
+            background: var(--bg-section);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        /* Bar Chart */
+        .bar-chart {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .bar-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .bar-label {
+            width: 100px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-family: var(--font-mono);
+        }
+
+        .bar-track {
+            flex: 1;
+            height: 20px;
+            background: var(--bg-card);
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: 10px;
+            position: relative;
+        }
+
+        .bar-value {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.7rem;
+            font-weight: 600;
+            font-family: var(--font-mono);
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+
+        /* Pie Chart */
         .pie-chart-wrapper {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 20px;
+            gap: 32px;
+            flex-wrap: wrap;
         }
+
         .pie-chart {
-            width: 150px;
-            height: 150px;
+            width: 160px;
+            height: 160px;
             border-radius: 50%;
             position: relative;
+            border: 1px solid var(--border-color);
         }
+
+        .pie-chart::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60%;
+            height: 60%;
+            background: var(--bg-section);
+            border-radius: 50%;
+        }
+
         .pie-legend {
-            text-align: left;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
+
         .pie-legend-item {
             display: flex;
             align-items: center;
-            margin-bottom: 8px;
-        }
-        .pie-legend-color {
-            width: 20px;
-            height: 20px;
-            border-radius: 4px;
-            margin-right: 8px;
+            gap: 10px;
         }
 
-        /* 折线图样式 */
+        .pie-legend-color {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+        }
+
+        .pie-legend-text {
+            font-size: 0.85rem;
+        }
+
+        .pie-legend-text strong {
+            color: var(--text-primary);
+        }
+
+        .pie-legend-text span {
+            color: var(--text-secondary);
+            margin-left: 4px;
+        }
+
+        /* Line Chart */
         .line-chart-container {
             position: relative;
-            height: 160px;
+            height: 180px;
             display: flex;
             align-items: flex-end;
-            padding-bottom: 30px;
+            justify-content: space-around;
+            padding-bottom: 36px;
         }
+
         .line-bar {
-            position: relative;
-            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             flex: 1;
-            margin: 0 4px;
+            max-width: 50px;
         }
+
         .line-bar-column {
-            width: 40px;
-            margin: 0 auto;
+            width: 32px;
             border-radius: 4px 4px 0 0;
-            position: relative;
         }
+
+        .line-bar-value {
+            margin-bottom: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            font-family: var(--font-mono);
+        }
+
         .line-bar-label {
             margin-top: 8px;
-            font-size: 0.75rem;
-            color: #6c757d;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            font-family: var(--font-mono);
         }
-        .line-bar-value {
+
+        /* Timeline */
+        .timeline {
+            position: relative;
+            padding-left: 28px;
+        }
+
+        .timeline::before {
+            content: '';
             position: absolute;
-            top: -20px;
-            left: 50%;
-            transform: translateX(-50%);
+            left: 6px;
+            top: 4px;
+            bottom: 4px;
+            width: 2px;
+            background: var(--border-color);
+        }
+
+        .timeline-item {
+            position: relative;
+            padding: 12px 0;
+            border-bottom: 1px dashed var(--border-color);
+        }
+
+        .timeline-item:last-child {
+            border-bottom: none;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -26px;
+            top: 16px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--bg-card);
+            border: 2px solid var(--accent-blue);
+        }
+
+        .timeline-item.error::before {
+            border-color: var(--accent-red);
+            background: #fef2f2;
+        }
+
+        .timeline-item.warning::before {
+            border-color: var(--accent-yellow);
+            background: #fffbeb;
+        }
+
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .timeline-title {
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .timeline-time {
+            font-family: var(--font-mono);
             font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .timeline-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .timeline-detail {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+            font-family: var(--font-mono);
+        }
+
+        /* Cards */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .card {
+            background: var(--bg-section);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 14px 18px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .card-header i {
+            width: 18px;
+            height: 18px;
+        }
+
+        .card-header.error {
+            background: #fef2f2;
+            color: var(--accent-red);
+        }
+
+        .card-header.warning {
+            background: #fffbeb;
+            color: var(--accent-yellow);
+        }
+
+        .card-header.info {
+            background: #eff6ff;
+            color: var(--accent-blue);
+        }
+
+        .card-body {
+            padding: 16px 18px;
+        }
+
+        .card-summary {
+            margin-bottom: 6px;
+            color: var(--text-primary);
+        }
+
+        .card-description {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+
+        .card-metrics {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .card-metric {
+            background: var(--bg-card);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-family: var(--font-mono);
+            border: 1px solid var(--border-color);
+        }
+
+        .card-details {
+            list-style: none;
+            margin-top: 10px;
+            font-size: 0.8rem;
+        }
+
+        .card-details li {
+            padding: 4px 0;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: flex-start;
+            gap: 6px;
+        }
+
+        .card-details li::before {
+            content: '›';
+            color: var(--accent-blue);
             font-weight: bold;
+            flex-shrink: 0;
         }
 
-        .timeline-item { padding: 8px 0; border-bottom: 1px dashed #dee2e6; }
-        .timeline-item:last-child { border-bottom: none; }
+        /* Search Box */
+        .search-container {
+            position: relative;
+        }
 
-        .search-section input { margin-bottom: 10px; }
-
-        .raw-section pre {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
+        .search-input {
+            width: 100%;
+            padding: 12px 16px 12px 44px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-family: var(--font-mono);
             font-size: 0.85rem;
+            transition: border-color 0.15s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+
+        .search-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            width: 18px;
+            height: 18px;
+        }
+
+        .search-results {
+            margin-top: 12px;
+            max-height: 280px;
+            overflow-y: auto;
+        }
+
+        .search-result-item {
+            padding: 10px 14px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            margin-bottom: 6px;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .search-result-item:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent-blue);
+        }
+
+        /* Raw Data */
+        .raw-content {
+            background: var(--bg-section);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
             overflow-x: auto;
+            border: 1px solid var(--border-color);
         }
 
-        /* 底部信息 */
-        .footer-info {
+        .raw-content pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-all;
+            color: var(--text-primary);
+        }
+
+        /* Footer */
+        .footer {
             text-align: center;
-            color: #6c757d;
-            padding: 20px 0;
-            font-size: 0.85rem;
+            padding: 32px 20px;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            font-family: var(--font-mono);
+        }
+
+        .footer span {
+            color: var(--accent-blue);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-accent);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: -240px;
+                z-index: 1000;
+                transition: left 0.2s ease;
+            }
+
+            .sidebar.open {
+                left: 0;
+            }
+
+            .content-area {
+                padding: 16px;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
     </style>
 </head>
 <body>
     <div class="layout-container">
-        <!-- 左侧导航栏 -->
+        <!-- Sidebar Navigation -->
         <nav class="sidebar">
             <div class="sidebar-header">
-                <h5><i class="bi bi-file-earmark-text"></i>插件分析结果</h5>
+                <h5><i data-lucide="terminal"></i> 分析结果</h5>
             </div>
             <div class="plugin-nav">
-                <!-- 插件整体情况概览 -->
                 <a href="#overview" class="nav-item" data-plugin="overview">
                     <span class="plugin-name">
-                        <i class="bi bi-grid"></i>
+                        <i data-lucide="layout-grid"></i>
                         插件整体情况
                     </span>
                     <span class="plugin-desc">查看所有插件分析概览</span>
@@ -252,7 +867,7 @@
                 {% for plugin_id, plugin_data in result|dictsort %}
                 <a href="#plugin-{{ plugin_id }}" class="nav-item" data-plugin="{{ plugin_id }}">
                     <span class="plugin-name">
-                        <i class="bi bi-puzzle"></i>
+                        <i data-lucide="box"></i>
                         {{ plugin_data['meta']['plugin_name'] }}
                     </span>
                     {% if plugin_data['meta']['description'] %}
@@ -263,27 +878,24 @@
             </div>
         </nav>
 
-        <!-- 右侧内容区域 -->
+        <!-- Main Content -->
         <main class="content-area">
-            <!-- 插件整体情况概览 -->
+            <!-- Overview Section -->
             <div id="overview" class="plugin-section">
                 <div class="plugin-header">
-                    <h5>
-                        <i class="bi bi-grid"></i>
-                        插件整体情况
-                    </h5>
-                    <div class="plugin-description">汇总显示所有插件的分析状态</div>
+                    <h5><i data-lucide="layout-grid"></i> 插件整体情况</h5>
                 </div>
 
-                <div class="table-section mb-4">
-                    <div class="section-title">
-                        <i class="bi bi-table"></i>
-                        分析概览汇总
-                        <span class="badge bg-secondary ms-2">{{ result.items()|length }} 个插件</span>
-                    </div>
+                <div class="section-title">
+                    <i data-lucide="scan"></i>
+                    分析概览汇总
+                    <span class="badge badge-info">{{ result.items()|length }} 个插件</span>
+                </div>
+
+                <div class="table-wrapper">
                     <div class="table-responsive">
-                        <table class="table table-sm table-hover table-bordered">
-                            <thead class="table-light">
+                        <table>
+                            <thead>
                                 <tr>
                                     <th style="width: 50%">插件名称</th>
                                     <th style="width: 25%">警告数</th>
@@ -296,65 +908,48 @@
                                 {% for section in plugin_data['sections'] %}
                                     {% if section['type'] == 'stats' %}
                                         {% for item in section['items'] %}
-                                            {% if item.get('severity') == 'warning' %}
-                                                {% if item['value'] is number %}
-                                                    {% set ns.warning_count = ns.warning_count + item['value'] %}
-                                                {% endif %}
+                                            {% if item.get('severity') == 'warning' and item['value'] is number %}
+                                                {% set ns.warning_count = ns.warning_count + item['value'] %}
                                             {% endif %}
-                                            {% if item.get('severity') == 'error' %}
-                                                {% if item['value'] is number %}
-                                                    {% set ns.error_count = ns.error_count + item['value'] %}
-                                                {% endif %}
+                                            {% if item.get('severity') == 'error' and item['value'] is number %}
+                                                {% set ns.error_count = ns.error_count + item['value'] %}
                                             {% endif %}
                                         {% endfor %}
                                     {% elif section['type'] == 'table' %}
                                         {% for row in section['rows'] %}
-                                            {% if row.get('severity') == 'warning' %}
-                                                {% set ns.warning_count = ns.warning_count + 1 %}
-                                            {% endif %}
-                                            {% if row.get('severity') == 'error' %}
-                                                {% set ns.error_count = ns.error_count + 1 %}
-                                            {% endif %}
+                                            {% if row.get('severity') == 'warning' %}{% set ns.warning_count = ns.warning_count + 1 %}{% endif %}
+                                            {% if row.get('severity') == 'error' %}{% set ns.error_count = ns.error_count + 1 %}{% endif %}
                                         {% endfor %}
                                     {% elif section['type'] == 'timeline' %}
                                         {% for event in section['events'] %}
-                                            {% if event.get('severity') == 'warning' %}
-                                                {% set ns.warning_count = ns.warning_count + 1 %}
-                                            {% endif %}
-                                            {% if event.get('severity') == 'error' %}
-                                                {% set ns.error_count = ns.error_count + 1 %}
-                                            {% endif %}
+                                            {% if event.get('severity') == 'warning' %}{% set ns.warning_count = ns.warning_count + 1 %}{% endif %}
+                                            {% if event.get('severity') == 'error' %}{% set ns.error_count = ns.error_count + 1 %}{% endif %}
                                         {% endfor %}
                                     {% elif section['type'] == 'cards' %}
                                         {% for card in section['cards'] %}
-                                            {% if card.get('severity') == 'warning' %}
-                                                {% set ns.warning_count = ns.warning_count + 1 %}
-                                            {% endif %}
-                                            {% if card.get('severity') == 'error' %}
-                                                {% set ns.error_count = ns.error_count + 1 %}
-                                            {% endif %}
+                                            {% if card.get('severity') == 'warning' %}{% set ns.warning_count = ns.warning_count + 1 %}{% endif %}
+                                            {% if card.get('severity') == 'error' %}{% set ns.error_count = ns.error_count + 1 %}{% endif %}
                                         {% endfor %}
                                     {% endif %}
                                 {% endfor %}
-                                <tr{% if ns.error_count > 0 %} class="table-danger"{% elif ns.warning_count > 0 %} class="table-warning"{% endif %}>
+                                <tr{% if ns.error_count > 0 %} class="row-error"{% elif ns.warning_count > 0 %} class="row-warning"{% endif %}>
                                     <td>
-                                        <a href="#plugin-{{ plugin_id }}" class="text-primary" style="text-decoration: none;">
-                                            <i class="bi bi-puzzle"></i>
+                                        <a href="#plugin-{{ plugin_id }}" style="color: var(--accent-blue); text-decoration: none;">
                                             {{ plugin_data['meta']['plugin_name'] }}
                                         </a>
                                     </td>
                                     <td>
                                         {% if ns.warning_count > 0 %}
-                                        <span class="badge bg-warning">{{ ns.warning_count }}</span>
+                                        <span class="badge badge-warning">{{ ns.warning_count }}</span>
                                         {% else %}
-                                        <span class="text-muted">0</span>
+                                        <span style="color: var(--text-muted)">0</span>
                                         {% endif %}
                                     </td>
                                     <td>
                                         {% if ns.error_count > 0 %}
-                                        <span class="badge bg-danger">{{ ns.error_count }}</span>
+                                        <span class="badge badge-error">{{ ns.error_count }}</span>
                                         {% else %}
-                                        <span class="text-muted">0</span>
+                                        <span style="color: var(--text-muted)">0</span>
                                         {% endif %}
                                     </td>
                                 </tr>
@@ -365,289 +960,313 @@
                 </div>
             </div>
 
+            <!-- Plugin Sections -->
             {% for plugin_id, plugin_data in result|dictsort %}
             <div id="plugin-{{ plugin_id }}" class="plugin-section">
                 <div class="plugin-header">
-                    <h5>
-                        <i class="bi bi-puzzle"></i>
-                        {{ plugin_data['meta']['plugin_name'] }}
-                    </h5>
-                    {% if plugin_data['meta']['description'] %}
-                    <div class="plugin-description">{{ plugin_data['meta']['description'] }}</div>
-                    {% endif %}
-                    <small class="text-muted">
-                        <i class="bi bi-clock"></i> {{ plugin_data['meta']['analysis_time'] }}
-                        | v{{ plugin_data['meta']['version'] }}
-                    </small>
+                    <div>
+                        <h5><i data-lucide="box"></i> {{ plugin_data['meta']['plugin_name'] }}</h5>
+                        {% if plugin_data['meta']['description'] %}
+                        <div class="plugin-description">{{ plugin_data['meta']['description'] }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="plugin-meta">
+                        <span><i data-lucide="clock"></i> {{ plugin_data['meta']['analysis_time'] }}</span>
+                        <span><i data-lucide="tag"></i> v{{ plugin_data['meta']['version'] }}</span>
+                    </div>
                 </div>
 
                 {% for section in plugin_data['sections'] %}
+                <!-- Stats Section -->
                 {% if section['type'] == 'stats' %}
-                <div class="stats-section mb-4">
+                <div class="stats-section" style="margin-bottom: 24px;">
                     <div class="section-title">
-                        {% if section['icon'] %}<i class="bi bi-{{ section['icon'] }}"></i>{% endif %}
+                        {% if section['icon'] %}<i data-lucide="{{ section['icon'] }}"></i>{% else %}<i data-lucide="bar-chart-2"></i>{% endif %}
                         {{ section['title'] }}
                     </div>
-                    <div class="row">
+                    <div class="stats-grid">
                         {% for item in section['items'] %}
-                        <div class="col-md-3 col-6 mb-2">
-                            <div class="stat-item border-{{ get_severity_color(item['severity']) }}">
-                                <div class="text-{{ get_severity_color(item['severity']) }}" style="font-size: 1.5rem; font-weight: bold;">
-                                    {{ item['value'] }}{% if item['unit'] %} {{ item['unit'] }}{% endif %}
-                                </div>
-                                <small class="text-muted">
-                                    {% if item['icon'] %}<i class="bi bi-{{ item['icon'] }}"></i> {% endif %}
-                                    {{ item['label'] }}
-                                </small>
+                        <div class="stat-card severity-{{ item['severity'] }}">
+                            <div class="stat-value severity-{{ item['severity'] }}">
+                                {{ item['value'] }}{% if item['unit'] %}<span style="font-size: 0.9rem; opacity: 0.6;"> {{ item['unit'] }}</span>{% endif %}
+                            </div>
+                            <div class="stat-label">
+                                {% if item['icon'] %}<i data-lucide="{{ item['icon'] }}"></i>{% endif %}
+                                {{ item['label'] }}
                             </div>
                         </div>
                         {% endfor %}
                     </div>
                 </div>
 
+                <!-- Table Section -->
                 {% elif section['type'] == 'table' %}
-                <div class="table-section mb-4">
+                <div class="table-section" style="margin-bottom: 24px;">
                     <div class="section-title">
-                        {% if section['icon'] %}<i class="bi bi-{{ section['icon'] }}"></i>{% endif %}
+                        {% if section['icon'] %}<i data-lucide="{{ section['icon'] }}"></i>{% else %}<i data-lucide="table"></i>{% endif %}
                         {{ section['title'] }}
-                        <span class="badge bg-{{ get_severity_color(section['severity']) }} ms-2">{{ section['rows']|length }} 条</span>
+                        <span class="badge badge-{{ 'error' if section['severity'] == 'error' else ('warning' if section['severity'] == 'warning' else 'info') }}">{{ section['rows']|length }} 条</span>
                     </div>
-                    <div class="table-responsive">
-                        <table class="table table-sm table-hover table-bordered">
-                            <thead class="table-light">
-                                <tr>
-                                    {% for col in section['columns'] %}
-                                    <th{% if col['width'] %} style="width:{{ col['width'] }}"{% endif %}>{{ col['label'] }}</th>
+                    <div class="table-wrapper">
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        {% for col in section['columns'] %}
+                                        <th{% if col['width'] %} style="width:{{ col['width'] }}"{% endif %}>{{ col['label'] }}</th>
+                                        {% endfor %}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in section['rows'] %}
+                                    <tr{% if row.get('severity') == 'error' %} class="row-error"{% elif row.get('severity') == 'warning' %} class="row-warning"{% endif %}>
+                                        {% for col in section['columns'] %}
+                                        <td>{{ truncate_text(row[col['key']]|string, col.get('truncate', 50)) }}</td>
+                                        {% endfor %}
+                                    </tr>
                                     {% endfor %}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for row in section['rows'] %}
-                                <tr{% if row['severity'] %} class="table-{{ get_severity_color(row['severity']) }}"{% endif %}>
-                                    {% for col in section['columns'] %}
-                                    <td>{{ truncate_text(row[col['key']]|string, col.get('truncate', 50)) }}</td>
-                                    {% endfor %}
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
+                <!-- Chart Section -->
                 {% elif section['type'] == 'chart' %}
-                <div class="chart-section mb-4">
+                <div class="chart-section" style="margin-bottom: 24px;">
                     <div class="section-title">
-                        {% if section['icon'] %}<i class="bi bi-{{ section['icon'] }}"></i>{% endif %}
+                        {% if section['icon'] %}<i data-lucide="{{ section['icon'] }}"></i>{% else %}<i data-lucide="pie-chart"></i>{% endif %}
                         {{ section['title'] }}
                     </div>
                     <div class="chart-container">
                         {% set data = section['data'] %}
                         {% set labels = data['labels'] %}
                         {% set values = data['values'] %}
+                        {% set chart_colors = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#0891b2', '#8b5cf6', '#ec4899', '#65a30d'] %}
+
                         {% if section['chart_type'] == 'bar' %}
-                        {% for i in range(labels|length) %}
-                        <div class="d-flex align-items-center mb-2">
-                            <span style="width:100px;font-size:0.85rem">{{ labels[i] }}</span>
-                            <div class="progress flex-grow-1" style="height:20px">
-                                <div class="progress-bar bg-{{ get_chart_color(i) }}" style="width:{{ calc_width(values, i) }}%">
-                                    {{ values[i] }}
+                        <div class="bar-chart">
+                            {% for i in range(labels|length) %}
+                            <div class="bar-item">
+                                <span class="bar-label">{{ labels[i] }}</span>
+                                <div class="bar-track">
+                                    <div class="bar-fill" style="width: {{ calc_width(values, i) }}%; background: {{ chart_colors[i % 8] }};">
+                                        <span class="bar-value">{{ values[i] }}</span>
+                                    </div>
                                 </div>
                             </div>
+                            {% endfor %}
                         </div>
-                        {% endfor %}
+
                         {% elif section['chart_type'] == 'pie' %}
                         <div class="pie-chart-wrapper">
-                            <div class="pie-chart" style="background: {{ calc_pie_conic(values) }}"></div>
+                            <div class="pie-chart" style="background: conic-gradient({% for i in range(labels|length) %}{{ chart_colors[i % 8] }} {{ (values[:i]|sum / values|sum * 100)|round(2) }}% {{ ((values[:i+1]|sum) / values|sum * 100)|round(2) }}%{% if not loop.last %}, {% endif %}{% endfor %});"></div>
                             <div class="pie-legend">
                                 {% for i in range(labels|length) %}
                                 <div class="pie-legend-item">
-                                    <div class="pie-legend-color bg-{{ get_chart_color(i) }}"></div>
-                                    <span><strong>{{ labels[i] }}</strong>: {{ values[i] }} ({{ (values[i] / (values|sum) * 100)|round(1) }}%)</span>
+                                    <div class="pie-legend-color" style="background: {{ chart_colors[i % 8] }};"></div>
+                                    <div class="pie-legend-text">
+                                        <strong>{{ labels[i] }}</strong>
+                                        <span>{{ values[i] }} ({{ (values[i] / (values|sum) * 100)|round(1) }}%)</span>
+                                    </div>
                                 </div>
                                 {% endfor %}
                             </div>
                         </div>
+
                         {% elif section['chart_type'] == 'line' %}
                         <div class="line-chart-container">
                             {% for i in range(labels|length) %}
                             <div class="line-bar">
-                                <div class="line-bar-value text-{{ get_chart_color(i) }}">{{ values[i] }}</div>
-                                <div class="line-bar-column bg-{{ get_chart_color(i) }}" style="height: {{ calc_line_height(values, i) }}px"></div>
+                                <div class="line-bar-value" style="color: {{ chart_colors[i % 8] }};">{{ values[i] }}</div>
+                                <div class="line-bar-column" style="height: {{ calc_line_height(values, i, 100) }}px; background: {{ chart_colors[i % 8] }};"></div>
                                 <div class="line-bar-label">{{ labels[i] }}</div>
                             </div>
                             {% endfor %}
                         </div>
-                        <svg width="100%" height="160" style="position:absolute;top:0;left:0;pointer-events:none">
-                            {% set max_h = 120 %}
-                            {% set bar_count = labels|length %}
-                            {% for i in range(bar_count - 1) %}
-                            {% set h1 = calc_line_height(values, i, max_h) %}
-                            {% set h2 = calc_line_height(values, i + 1, max_h) %}
-                            {% set x1 = (i + 0.5) / bar_count * 100 %}
-                            {% set x2 = (i + 1.5) / bar_count * 100 %}
-                            <line x1="{{ x1 }}%" y1="{{ 160 - h1 }}" x2="{{ x2 }}%" y2="{{ 160 - h2 }}" stroke="#495057" stroke-width="2" stroke-opacity="0.5"/>
-                            <circle cx="{{ x1 }}%" cy="{{ 160 - h1 }}" r="4" fill="{{ get_chart_hex_color(i) }}"/>
-                            {% endfor %}
-                            {% set last_i = bar_count - 1 %}
-                            {% set last_h = calc_line_height(values, last_i, max_h) %}
-                            {% set last_x = (last_i + 0.5) / bar_count * 100 %}
-                            <circle cx="{{ last_x }}%" cy="{{ 160 - last_h }}" r="4" fill="{{ get_chart_hex_color(last_i) }}"/>
-                        </svg>
                         {% endif %}
                     </div>
                 </div>
 
+                <!-- Timeline Section -->
                 {% elif section['type'] == 'timeline' %}
-                <div class="timeline-section mb-4">
+                <div class="timeline-section" style="margin-bottom: 24px;">
                     <div class="section-title">
-                        {% if section['icon'] %}<i class="bi bi-{{ section['icon'] }}"></i>{% endif %}
+                        {% if section['icon'] %}<i data-lucide="{{ section['icon'] }}"></i>{% else %}<i data-lucide="git-branch"></i>{% endif %}
                         {{ section['title'] }}
                     </div>
                     <div class="timeline">
                         {% for event in section['events'] %}
-                        <div class="timeline-item d-flex">
-                            <div class="me-3">
-                                <i class="bi bi-{{ event.get('icon', 'circle') }} text-{{ get_severity_color(event['severity']) }}"></i>
+                        <div class="timeline-item {{ event['severity'] }}">
+                            <div class="timeline-header">
+                                <span class="timeline-title">{{ event['title'] }}</span>
+                                <span class="timeline-time">{{ event['timestamp'] }}</span>
                             </div>
-                            <div class="flex-grow-1">
-                                <div class="d-flex justify-content-between">
-                                    <strong>{{ event['title'] }}</strong>
-                                    <small class="text-muted">{{ event['timestamp'] }}</small>
-                                </div>
-                                {% if event['description'] %}<div class="small">{{ event['description'] }}</div>{% endif %}
-                                {% if event['detail'] %}<small class="text-muted">{{ event['detail'] }}</small>{% endif %}
-                            </div>
+                            {% if event['description'] %}
+                            <div class="timeline-desc">{{ event['description'] }}</div>
+                            {% endif %}
+                            {% if event['detail'] %}
+                            <div class="timeline-detail">{{ event['detail'] }}</div>
+                            {% endif %}
                         </div>
                         {% endfor %}
                     </div>
                 </div>
 
+                <!-- Cards Section -->
                 {% elif section['type'] == 'cards' %}
-                <div class="cards-section mb-4">
+                <div class="cards-section" style="margin-bottom: 24px;">
                     <div class="section-title">
-                        {% if section['icon'] %}<i class="bi bi-{{ section['icon'] }}"></i>{% endif %}
+                        {% if section['icon'] %}<i data-lucide="{{ section['icon'] }}"></i>{% else %}<i data-lucide="layers"></i>{% endif %}
                         {{ section['title'] }}
                     </div>
-                    <div class="row">
+                    <div class="cards-grid">
                         {% for card in section['cards'] %}
-                        <div class="col-md-6 mb-3">
-                            <div class="card">
-                                <div class="card-header bg-{{ get_severity_color(card['severity']) }} text-white">
-                                    {% if card['icon'] %}<i class="bi bi-{{ card['icon'] }}"></i>{% endif %}
-                                    {{ card['title'] }}
+                        <div class="card">
+                            <div class="card-header {{ card['severity'] }}">
+                                {% if card['icon'] %}<i data-lucide="{{ card['icon'] }}"></i>{% endif %}
+                                {{ card['title'] }}
+                            </div>
+                            <div class="card-body">
+                                {% set content = card['content'] %}
+                                {% if content['summary'] %}
+                                <div class="card-summary">{{ content['summary'] }}</div>
+                                {% endif %}
+                                {% if content['description'] %}
+                                <div class="card-description">{{ content['description'] }}</div>
+                                {% endif %}
+                                {% if content['metrics'] %}
+                                <div class="card-metrics">
+                                    {% for k, v in content['metrics'].items() %}
+                                    <span class="card-metric">{{ k }}: {{ v }}</span>
+                                    {% endfor %}
                                 </div>
-                                <div class="card-body">
-                                    {% set content = card['content'] %}
-                                    {% if content['summary'] %}<p class="card-text">{{ content['summary'] }}</p>{% endif %}
-                                    {% if content['description'] %}<p class="small text-muted">{{ content['description'] }}</p>{% endif %}
-                                    {% if content['metrics'] %}
-                                    <div class="mt-2">
-                                        {% for k, v in content['metrics'].items() %}
-                                        <span class="badge bg-light text-dark me-1">{{ k }}: {{ v }}</span>
-                                        {% endfor %}
-                                    </div>
-                                    {% endif %}
-                                    {% if content['details'] %}
-                                    <ul class="small mt-2">
-                                        {% for d in content['details'] %}<li>{{ d }}</li>{% endfor %}
-                                    </ul>
-                                    {% endif %}
-                                </div>
+                                {% endif %}
+                                {% if content['details'] %}
+                                <ul class="card-details">
+                                    {% for d in content['details'] %}<li>{{ d }}</li>{% endfor %}
+                                </ul>
+                                {% endif %}
                             </div>
                         </div>
                         {% endfor %}
                     </div>
                 </div>
 
+                <!-- Search Box Section -->
                 {% elif section['type'] == 'search_box' %}
-                <div class="search-section mb-4">
+                <div class="search-section" style="margin-bottom: 24px;">
                     <div class="section-title">
-                        {% if section['icon'] %}<i class="bi bi-{{ section['icon'] }}"></i>{% endif %}
+                        {% if section['icon'] %}<i data-lucide="{{ section['icon'] }}"></i>{% else %}<i data-lucide="search"></i>{% endif %}
                         {{ section['title'] }}
                     </div>
-                    <input type="text" class="form-control" placeholder="{{ section.get('placeholder', '搜索...') }}">
-                    <div class="list-group mt-2">
+                    <div class="search-container">
+                        <i data-lucide="search" class="search-icon"></i>
+                        <input type="text" class="search-input" placeholder="{{ section.get('placeholder', '搜索...') }}" data-search-target="search-results-{{ loop.index }}">
+                    </div>
+                    <div id="search-results-{{ loop.index }}" class="search-results">
                         {% for item in section['data'] %}
-                        <div class="list-group-item small">
+                        <div class="search-result-item">
                             {% for field in section['search_fields'] %}
-                            <span class="me-2">{{ item[field] }}</span>
+                            <span style="margin-right: 16px;">{{ item[field] }}</span>
                             {% endfor %}
                         </div>
                         {% endfor %}
                     </div>
                 </div>
 
+                <!-- Raw Section -->
                 {% elif section['type'] == 'raw' %}
-                <div class="raw-section mb-4">
+                <div class="raw-section" style="margin-bottom: 24px;">
                     <div class="section-title">
-                        <i class="bi bi-code"></i> {{ section['title'] }}
+                        <i data-lucide="code"></i>
+                        {{ section['title'] }}
                     </div>
-                    <pre>{{ section['data'] | tojson(indent=2) }}</pre>
+                    <div class="raw-content">
+                        <pre>{{ section['data'] | tojson(indent=2) }}</pre>
+                    </div>
                 </div>
-
                 {% endif %}
                 {% endfor %}
             </div>
             {% endfor %}
 
-            <div class="footer-info">
-                Generated by AI Log Analyzer Plugin System
+            <!-- Footer -->
+            <div class="footer">
+                Generated by <span>AI Log Analyzer Plugin System</span>
             </div>
         </main>
     </div>
 
     <script>
-    // 导航高亮和滚动监听
-    document.addEventListener('DOMContentLoaded', function() {
-        const navItems = document.querySelectorAll('.nav-item');
-        const sections = document.querySelectorAll('.plugin-section');
+        // Initialize Lucide icons
+        lucide.createIcons();
 
-        // 点击导航项
-        navItems.forEach(item => {
-            item.addEventListener('click', function(e) {
-                e.preventDefault();
-                const targetId = this.getAttribute('href').substring(1);
-                const targetSection = document.getElementById(targetId);
+        // Navigation highlighting
+        document.addEventListener('DOMContentLoaded', function() {
+            const navItems = document.querySelectorAll('.nav-item');
+            const sections = document.querySelectorAll('.plugin-section');
 
-                if (targetSection) {
-                    targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // Click navigation
+            navItems.forEach(item => {
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href').substring(1);
+                    const targetSection = document.getElementById(targetId);
 
-                    // 更新导航高亮
-                    navItems.forEach(nav => nav.classList.remove('active'));
-                    this.classList.add('active');
-                }
+                    if (targetSection) {
+                        targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        navItems.forEach(nav => nav.classList.remove('active'));
+                        this.classList.add('active');
+                    }
+                });
+            });
+
+            // Scroll observer
+            const observerOptions = {
+                root: null,
+                rootMargin: '-20px 0px -80% 0px',
+                threshold: 0
+            };
+
+            const observer = new IntersectionObserver(entries => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const pluginId = entry.target.id.replace('plugin-', '');
+                        navItems.forEach(nav => {
+                            if (nav.getAttribute('data-plugin') === pluginId) {
+                                nav.classList.add('active');
+                            } else {
+                                nav.classList.remove('active');
+                            }
+                        });
+                    }
+                });
+            }, observerOptions);
+
+            sections.forEach(section => observer.observe(section));
+
+            // Default highlight
+            if (navItems.length > 0) {
+                navItems[0].classList.add('active');
+            }
+
+            // Search functionality
+            const searchInputs = document.querySelectorAll('.search-input');
+            searchInputs.forEach(input => {
+                input.addEventListener('input', function() {
+                    const targetId = this.getAttribute('data-search-target');
+                    const results = document.getElementById(targetId);
+                    const items = results.querySelectorAll('.search-result-item');
+                    const query = this.value.toLowerCase();
+
+                    items.forEach(item => {
+                        const text = item.textContent.toLowerCase();
+                        item.style.display = text.includes(query) ? 'block' : 'none';
+                    });
+                });
             });
         });
-
-        // 滚动监听，自动高亮
-        const observerOptions = {
-            root: null,
-            rootMargin: '-20px 0px -80% 0px',
-            threshold: 0
-        };
-
-        const observer = new IntersectionObserver(entries => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const pluginId = entry.target.id.replace('plugin-', '');
-                    navItems.forEach(nav => {
-                        if (nav.getAttribute('data-plugin') === pluginId) {
-                            nav.classList.add('active');
-                        } else {
-                            nav.classList.remove('active');
-                        }
-                    });
-                }
-            });
-        }, observerOptions);
-
-        sections.forEach(section => observer.observe(section));
-
-        // 默认高亮第一个
-        if (navItems.length > 0) {
-            navItems[0].classList.add('active');
-        }
-    });
     </script>
 </body>
 </html>

@@ -4,177 +4,643 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>批量分析结果汇总</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        * { box-sizing: border-box; }
-        body {
-            background-color: #f8f9fa;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        :root {
+            --bg-page: #f5f7fa;
+            --bg-card: #ffffff;
+            --bg-section: #f8fafc;
+            --bg-hover: #f1f5f9;
+            --text-primary: #1e293b;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --border-color: #e2e8f0;
+            --border-accent: #cbd5e1;
+            --accent-blue: #3b82f6;
+            --accent-green: #22c55e;
+            --accent-red: #ef4444;
+            --accent-yellow: #f59e0b;
+            --font-mono: 'IBM Plex Mono', monospace;
+            --font-ui: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+            --radius-sm: 6px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
         }
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 2rem 0;
-            margin-bottom: 2rem;
-        }
-        .header h1 {
-            font-size: 1.5rem;
+
+        * {
+            box-sizing: border-box;
             margin: 0;
+            padding: 0;
         }
-        .header p {
-            margin: 0.5rem 0 0;
-            opacity: 0.8;
-        }
-        .table-hover tbody tr:hover {
-            cursor: pointer;
-            background-color: #e7f1ff;
-        }
-        .badge-ai {
-            background-color: #667eea;
-        }
-        .modal-xl {
-            max-width: 95%;
-            width: 95%;
-        }
-        .modal-body iframe {
-            width: 100%;
-            height: 500px;
-            border: none;
-        }
-        .ai-section {
-            background: #f8f9fa;
-            padding: 1rem;
-            border-top: 1px solid #dee2e6;
-        }
-        .ai-content {
-            white-space: pre-wrap;
-            font-size: 0.9rem;
+
+        body {
+            font-family: var(--font-ui);
+            background: var(--bg-page);
+            color: var(--text-primary);
             line-height: 1.6;
-            max-height: 300px;
-            overflow-y: auto;
+            min-height: 100vh;
         }
-        .clickable-row {
+
+        /* Header */
+        .header {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border-color);
+            padding: 24px 0;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        .header h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .header h1 i {
+            width: 22px;
+            height: 22px;
+            color: var(--accent-blue);
+        }
+
+        .header-meta {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .meta-item i {
+            width: 16px;
+            height: 16px;
+            color: var(--accent-blue);
+        }
+
+        /* Main Content */
+        .main-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* Card */
+        .card {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-section);
+        }
+
+        .card-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-title i {
+            width: 18px;
+            height: 18px;
+            color: var(--accent-blue);
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            font-family: var(--font-mono);
+            background: #eff6ff;
+            color: var(--accent-blue);
+            border: 1px solid #bfdbfe;
+        }
+
+        /* Table */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        thead {
+            background: var(--bg-section);
+        }
+
+        th {
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--text-primary);
+        }
+
+        tbody tr {
+            transition: background 0.1s ease;
             cursor: pointer;
         }
-        .clickable-row:hover {
-            background-color: #f0f6ff;
+
+        tbody tr:hover {
+            background: var(--bg-hover);
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .file-name {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-primary);
+        }
+
+        .file-name i {
+            width: 16px;
+            height: 16px;
+            color: var(--accent-blue);
+        }
+
+        .file-name:hover {
+            color: var(--accent-blue);
+        }
+
+        /* Status Badges */
+        .status-error {
+            background: #fef2f2;
+            color: var(--accent-red);
+            border: 1px solid #fecaca;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-family: var(--font-mono);
+            font-weight: 500;
+        }
+
+        .status-warning {
+            background: #fffbeb;
+            color: var(--accent-yellow);
+            border: 1px solid #fde68a;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-family: var(--font-mono);
+            font-weight: 500;
+        }
+
+        .status-success {
+            background: #f0fdf4;
+            color: var(--accent-green);
+            border: 1px solid #bbf7d0;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-family: var(--font-mono);
+            font-weight: 500;
+        }
+
+        .status-ai {
+            background: #eff6ff;
+            color: var(--accent-blue);
+            border: 1px solid #bfdbfe;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-family: var(--font-mono);
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .status-ai i {
+            width: 12px;
+            height: 12px;
+        }
+
+        .status-none {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            font-family: var(--font-mono);
+        }
+
+        .center {
+            text-align: center;
+        }
+
+        /* Hint */
+        .hint {
+            padding: 12px 20px;
+            border-top: 1px solid var(--border-color);
+            background: var(--bg-section);
+        }
+
+        .hint-text {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-family: var(--font-mono);
+        }
+
+        .hint-text i {
+            width: 14px;
+            height: 14px;
+            color: var(--accent-blue);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            width: 95%;
+            max-width: 1200px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        .modal-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-section);
+        }
+
+        .modal-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .modal-title i {
+            width: 18px;
+            height: 18px;
+            color: var(--accent-blue);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 6px;
+            border-radius: var(--radius-sm);
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .modal-close i {
+            width: 20px;
+            height: 20px;
+        }
+
+        .modal-body {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-iframe {
+            flex: 1;
+            width: 100%;
+            border: none;
+            background: var(--bg-page);
+        }
+
+        .ai-section {
+            background: var(--bg-section);
+            border-top: 1px solid var(--border-color);
+            padding: 16px 20px;
+            display: none;
+        }
+
+        .ai-section.active {
+            display: block;
+        }
+
+        .ai-section-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--accent-blue);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
+        .ai-section-title i {
+            width: 16px;
+            height: 16px;
+        }
+
+        .ai-content {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            line-height: 1.7;
+            color: var(--text-secondary);
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            background: var(--bg-card);
+            padding: 14px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 32px 20px;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            font-family: var(--font-mono);
+        }
+
+        .footer span {
+            color: var(--accent-blue);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-accent);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 16px;
+            }
+
+            .header-content {
+                padding: 0 16px;
+            }
+
+            .header-meta {
+                flex-direction: column;
+                gap: 6px;
+            }
         }
     </style>
 </head>
 <body>
     <!-- Header -->
-    <div class="header">
-        <div class="container">
-            <h1><i class="bi bi-folder2-open"></i> 批量分析结果</h1>
-            <p><i class="bi bi-clock"></i> {{ batch_time }} | <i class="bi bi-folder"></i> {{ folder_name }} | <i class="bi bi-file-earmark-text"></i> {{ total_files }} 个文件</p>
+    <header class="header">
+        <div class="header-content">
+            <h1><i data-lucide="folder-open"></i> 批量分析结果</h1>
+            <div class="header-meta">
+                <span class="meta-item">
+                    <i data-lucide="clock"></i>
+                    {{ batch_time }}
+                </span>
+                <span class="meta-item">
+                    <i data-lucide="folder"></i>
+                    {{ folder_name }}
+                </span>
+                <span class="meta-item">
+                    <i data-lucide="file-text"></i>
+                    {{ total_files }} 个文件
+                </span>
+            </div>
         </div>
-    </div>
+    </header>
 
     <!-- Main Content -->
-    <div class="container">
+    <main class="main-content">
         <div class="card">
             <div class="card-header">
-                <i class="bi bi-list-ul"></i> 日志文件列表
-                <span class="badge bg-secondary ms-2">{{ files|length }}</span>
+                <span class="card-title">
+                    <i data-lucide="list"></i>
+                    日志文件列表
+                </span>
+                <span class="badge">{{ files|length }}</span>
             </div>
-            <div class="card-body">
-                <table class="table table-striped table-hover">
+            <div class="table-container">
+                <table>
                     <thead>
                         <tr>
                             <th style="width: 40%;">文件名</th>
-                            <th style="width: 15%; text-align: center;">错误</th>
-                            <th style="width: 15%; text-align: center;">警告</th>
-                            <th style="width: 15%; text-align: center;">插件数</th>
-                            <th style="width: 15%; text-align: center;">AI分析</th>
+                            <th style="width: 15%;" class="center">错误</th>
+                            <th style="width: 15%;" class="center">警告</th>
+                            <th style="width: 15%;" class="center">插件数</th>
+                            <th style="width: 15%;" class="center">AI分析</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for file in files %}
-                        <tr class="clickable-row" onclick="showDetail('{{ file.html_path }}', '{{ file.filename }}', {{ file.has_ai }})">
+                        <tr onclick="showDetail('{{ file.html_path }}', '{{ file.filename }}', {{ file.has_ai }})">
                             <td>
-                                <i class="bi bi-file-earmark-text text-primary"></i>
-                                {{ file.filename }}
+                                <span class="file-name">
+                                    <i data-lucide="file-text"></i>
+                                    {{ file.filename }}
+                                </span>
                             </td>
-                            <td style="text-align: center;">
+                            <td class="center">
                                 {% if file.total_errors > 0 %}
-                                <span class="badge bg-danger">{{ file.total_errors }}</span>
+                                <span class="status-error">{{ file.total_errors }}</span>
                                 {% else %}
-                                <span class="badge bg-success">0</span>
+                                <span class="status-success">0</span>
                                 {% endif %}
                             </td>
-                            <td style="text-align: center;">
+                            <td class="center">
                                 {% if file.total_warnings > 0 %}
-                                <span class="badge bg-warning">{{ file.total_warnings }}</span>
+                                <span class="status-warning">{{ file.total_warnings }}</span>
                                 {% else %}
-                                <span class="badge bg-success">0</span>
+                                <span class="status-success">0</span>
                                 {% endif %}
                             </td>
-                            <td style="text-align: center;">
-                                <span class="badge bg-secondary">{{ file.plugin_count }}</span>
+                            <td class="center">
+                                <span class="badge">{{ file.plugin_count }}</span>
                             </td>
-                            <td style="text-align: center;">
+                            <td class="center">
                                 {% if file.has_ai %}
-                                <span class="badge badge-ai"><i class="bi bi-robot"></i> 已分析</span>
+                                <span class="status-ai">
+                                    <i data-lucide="bot"></i>
+                                    已分析
+                                </span>
                                 {% else %}
-                                <span class="badge bg-light text-dark">未分析</span>
+                                <span class="status-none">未分析</span>
                                 {% endif %}
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
-                <div class="text-muted mt-3">
-                    <small><i class="bi bi-info-circle"></i> 点击文件行查看详细分析结果</small>
-                </div>
+            </div>
+            <div class="hint">
+                <span class="hint-text">
+                    <i data-lucide="info"></i>
+                    点击文件行查看详细分析结果
+                </span>
             </div>
         </div>
-    </div>
+    </main>
 
-    <!-- Modal for Detail View -->
-    <div class="modal fade" id="detailModal" tabindex="-1">
-        <div class="modal-dialog modal-xl modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        <i class="bi bi-file-earmark-text"></i>
-                        <span id="modalFilename"></span>
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <iframe id="detailIframe" src=""></iframe>
-                    <!-- AI Result Section -->
-                    <div id="aiSection" class="ai-section" style="display: none;">
-                        <h6><i class="bi bi-robot"></i> AI 分析结果</h6>
-                        <div id="aiContent" class="ai-content"></div>
+    <!-- Modal -->
+    <div class="modal-overlay" id="detailModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">
+                    <i data-lucide="file-text"></i>
+                    <span id="modalFilename"></span>
+                </span>
+                <button class="modal-close" onclick="closeModal()">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <iframe id="detailIframe" class="modal-iframe" src=""></iframe>
+                <div id="aiSection" class="ai-section">
+                    <div class="ai-section-title">
+                        <i data-lucide="bot"></i>
+                        AI 分析结果
                     </div>
+                    <div id="aiContent" class="ai-content"></div>
                 </div>
             </div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Footer -->
+    <footer class="footer">
+        Generated by <span>AI Log Analyzer Plugin System</span>
+    </footer>
+
     <script>
         const baseApiUrl = '/api/plugin-result/html/';
+
+        // Initialize Lucide icons
+        lucide.createIcons();
 
         function showDetail(htmlPath, filename, hasAi) {
             document.getElementById('modalFilename').textContent = filename;
             document.getElementById('detailIframe').src = baseApiUrl + htmlPath;
 
-            // 显示AI结果区域（如果有）
             const aiSection = document.getElementById('aiSection');
             if (hasAi) {
-                aiSection.style.display = 'block';
-                // AI结果需要在iframe外展示，这里先显示提示
+                aiSection.classList.add('active');
                 document.getElementById('aiContent').textContent = '请查看详情目录中的 ai_result.json 文件';
             } else {
-                aiSection.style.display = 'none';
+                aiSection.classList.remove('active');
             }
 
-            const modal = new bootstrap.Modal(document.getElementById('detailModal'));
-            modal.show();
+            document.getElementById('detailModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
         }
+
+        function closeModal() {
+            document.getElementById('detailModal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        // Close modal on overlay click
+        document.getElementById('detailModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
     </script>
 </body>
 </html>
