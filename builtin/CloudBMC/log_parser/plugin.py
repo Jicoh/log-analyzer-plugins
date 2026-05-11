@@ -5,17 +5,19 @@
 """
 
 from datetime import datetime
-from typing import Dict, List
+from typing import Dict, List, Union
 
 from plugins.base import (
-    BasePlugin, AnalysisResult, ResultMeta, StatsItem
+    BasePlugin, AnalysisResult, ResultMeta, StatsItem, CliResult
 )
 
 
 class LogParserPlugin(BasePlugin):
     """日志解析插件。"""
 
-    def analyze(self, log_content: Dict[str, List[str]]) -> AnalysisResult:
+    def analyze(self, log_content: Dict[str, List[str]],
+                task_name: str = "", bmc_ip: str = "", date: str = "",
+                source: str = "system") -> Union[AnalysisResult, CliResult]:
         """分析日志内容。"""
         self.log("开始解析日志...")
 
@@ -92,7 +94,45 @@ class LogParserPlugin(BasePlugin):
             )
 
         self.log("分析完成")
+
+        # 同时构建cli格式返回值
+        cli_result = CliResult(
+            task_name=task_name,
+            bmc_ip=bmc_ip,
+            status='ERROR' if errors else 'OK',
+            description=self._build_cli_description(errors, warnings),
+            log_detail=self._build_cli_log_detail(errors, warnings),
+            date=date
+        )
+
+        if source == 'cli':
+            return cli_result
         return result
+
+    def _build_cli_description(self, errors: list, warnings: list) -> str:
+        """构建cli模式的描述信息"""
+        parts = []
+        if errors:
+            parts.append(f"错误数: {len(errors)}")
+        if warnings:
+            parts.append(f"警告数: {len(warnings)}")
+        # 附加前几条错误消息
+        for err in errors[:5]:
+            msg = err.get('message', '')
+            if msg:
+                parts.append(msg[:100])
+        return '; '.join(parts)[:1000]
+
+    def _build_cli_log_detail(self, errors: list, warnings: list) -> str:
+        """构建cli模式的日志详情"""
+        detail = {}
+        if errors or warnings:
+            detail['errors'] = len(errors)
+            detail['warnings'] = len(warnings)
+            items = errors[:20] + warnings[:20]
+            if items:
+                detail['items'] = items
+        return self.format_log_detail(detail)
 
 
 # 导出插件类

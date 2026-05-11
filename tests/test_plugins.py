@@ -6,7 +6,7 @@ import re
 import pytest
 
 from plugins.manager import PluginManager
-from plugins.base import AnalysisResult, ResultMeta
+from plugins.base import AnalysisResult, ResultMeta, CliResult
 
 
 @pytest.fixture
@@ -113,3 +113,149 @@ class TestPluginIdFormat:
         plugins = plugin_manager.get_all_plugins()
         ids = [p.id for p in plugins]
         assert len(ids) == len(set(ids)), "插件ID应该唯一"
+
+
+class TestParameterPassing:
+    """验证插件analyze方法能接收完整参数"""
+
+    def test_analyze_accepts_all_params(self, plugin_manager):
+        """验证内置插件接受所有参数而不报错"""
+        plugin = plugin_manager.get_plugin('CloudBMC_00001')
+        log_content = {"test.log": ["INFO ok"]}
+        result = plugin.analyze(
+            log_content,
+            task_name="test_task",
+            bmc_ip="192.168.1.1",
+            date="2024-01-01",
+            source="cli"
+        )
+        assert isinstance(result, CliResult)
+
+    def test_analyze_default_params(self, plugin_manager):
+        """验证默认参数不影响现有行为"""
+        plugin = plugin_manager.get_plugin('CloudBMC_00001')
+        log_content = {"test.log": ["ERROR fail"]}
+        result_default = plugin.analyze(log_content)
+        result_explicit = plugin.analyze(
+            log_content, task_name="", bmc_ip="", date="", source="system"
+        )
+        assert isinstance(result_default, AnalysisResult)
+        assert isinstance(result_explicit, AnalysisResult)
+        assert result_default.meta.plugin_id == result_explicit.meta.plugin_id
+
+    def test_statistics_plugin_accepts_all_params(self, plugin_manager):
+        """验证统计插件接受所有参数"""
+        plugin = plugin_manager.get_plugin('CloudBMC_00002')
+        log_content = {"test.log": ["INFO line"]}
+        result = plugin.analyze(
+            log_content,
+            task_name="t",
+            bmc_ip="10.0.0.1",
+            date="2025-01-01",
+            source="cli"
+        )
+        assert isinstance(result, CliResult)
+
+
+class TestCliReturnFormat:
+    """验证source='cli'时返回CliResult格式"""
+
+    def test_log_parser_cli_result_type(self, plugin_manager):
+        plugin = plugin_manager.get_plugin('CloudBMC_00001')
+        log_content = {"test.log": ["ERROR disk failure"]}
+        result = plugin.analyze(log_content, source='cli')
+        assert isinstance(result, CliResult)
+
+    def test_log_parser_cli_fields(self, plugin_manager):
+        """验证cli返回值的6个字段"""
+        plugin = plugin_manager.get_plugin('CloudBMC_00001')
+        log_content = {"test.log": ["ERROR disk failure"]}
+        result = plugin.analyze(
+            log_content,
+            task_name="my_task",
+            bmc_ip="192.168.1.1",
+            date="2024-01-01",
+            source='cli'
+        )
+        assert result.task_name == "my_task"
+        assert result.bmc_ip == "192.168.1.1"
+        assert result.date == "2024-01-01"
+        assert result.status == 'ERROR'
+        assert isinstance(result.description, str)
+        assert len(result.description) <= 1000
+        assert isinstance(result.log_detail, str)
+
+    def test_log_parser_cli_status_ok(self, plugin_manager):
+        """无错误时status为OK"""
+        plugin = plugin_manager.get_plugin('CloudBMC_00001')
+        log_content = {"test.log": ["INFO system started"]}
+        result = plugin.analyze(log_content, source='cli')
+        assert result.status == 'OK'
+
+    def test_log_parser_cli_status_error(self, plugin_manager):
+        """有错误时status为ERROR"""
+        plugin = plugin_manager.get_plugin('CloudBMC_00001')
+        log_content = {"test.log": ["ERROR disk failure"]}
+        result = plugin.analyze(log_content, source='cli')
+        assert result.status == 'ERROR'
+
+    def test_log_parser_cli_to_list(self, plugin_manager):
+        """验证to_list()输出格式"""
+        plugin = plugin_manager.get_plugin('CloudBMC_00001')
+        log_content = {"test.log": ["ERROR fail"]}
+        result = plugin.analyze(
+            log_content,
+            task_name="t1",
+            bmc_ip="1.1.1.1",
+            date="2024-06-01",
+            source='cli'
+        )
+        output = result.to_list()
+        assert isinstance(output, list)
+        assert len(output) == 6
+        assert output[0] == "t1"
+        assert output[1] == "1.1.1.1"
+        assert output[2] == 'ERROR'
+        assert output[5] == "2024-06-01"
+
+    def test_log_parser_cli_log_detail_length(self, plugin_manager):
+        """log_detail长度不超过3000"""
+        plugin = plugin_manager.get_plugin('CloudBMC_00001')
+        log_content = {"big.log": [f"ERROR error number {i}" for i in range(500)]}
+        result = plugin.analyze(log_content, source='cli')
+        assert len(result.log_detail) <= 3000
+
+    def test_statistics_plugin_cli_result(self, plugin_manager):
+        """统计插件cli返回值"""
+        plugin = plugin_manager.get_plugin('CloudBMC_00002')
+        log_content = {"test.log": ["ERROR fail", "WARNING warn"]}
+        result = plugin.analyze(
+            log_content,
+            task_name="task",
+            bmc_ip="10.0.0.1",
+            date="2025-01-01",
+            source='cli'
+        )
+        assert isinstance(result, CliResult)
+        assert result.task_name == "task"
+        assert result.bmc_ip == "10.0.0.1"
+        assert result.date == "2025-01-01"
+        assert result.status == 'ERROR'
+
+
+class TestSystemReturnFormat:
+    """验证source='system'时返回AnalysisResult格式"""
+
+    def test_log_parser_system_result(self, plugin_manager):
+        plugin = plugin_manager.get_plugin('CloudBMC_00001')
+        log_content = {"test.log": ["ERROR disk failure"]}
+        result = plugin.analyze(log_content, source='system')
+        assert isinstance(result, AnalysisResult)
+        assert result.meta.plugin_id == 'CloudBMC_00001'
+
+    def test_log_statistics_system_result(self, plugin_manager):
+        plugin = plugin_manager.get_plugin('CloudBMC_00002')
+        log_content = {"test.log": ["INFO line"]}
+        result = plugin.analyze(log_content, source='system')
+        assert isinstance(result, AnalysisResult)
+        assert result.meta.plugin_id == 'CloudBMC_00002'

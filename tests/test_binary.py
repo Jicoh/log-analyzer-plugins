@@ -25,6 +25,7 @@ def run_binary(*args, stdin_data=None):
         capture_output=True,
         text=True
     )
+    print(f"工具输出: ", result)
     return result
 
 
@@ -55,7 +56,13 @@ class TestBinaryAnalyze:
 
     def test_analyze_returncode_success(self):
         log_content = json.dumps({"system.log": ["INFO ok"]})
-        result = run_binary('analyze', '--plugin-id', 'CloudBMC_00001', stdin_data=log_content)
+        result = run_binary(
+            'analyze', '--plugin-id',
+            'CloudBMC_00001',
+            '--task-name', 'my_task',
+            '--bmc-ip', '192.168.1.1',
+            '--date', '2024-01-01',
+            stdin_data=log_content)
         assert result.returncode == 0
 
     def test_analyze_returncode_error(self):

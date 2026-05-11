@@ -106,6 +106,5 @@ class TestAnalyzeStdin:
         assert result.returncode == 0
         output = json.loads(result.stdout)
         log_detail = output[4]
-        assert isinstance(log_detail, dict)
-        detail_str = json.dumps(log_detail, ensure_ascii=False)
-        assert len(detail_str) <= 3000
+        assert isinstance(log_detail, str)
+        assert len(log_detail) <= 3000

@@ -9,7 +9,7 @@ import logging
 import importlib.util
 from typing import Dict, List, Optional, Any
 
-from .base import BasePlugin, AnalysisResult, count_severity
+from .base import BasePlugin, AnalysisResult, CliResult, count_severity
 
 logger = logging.getLogger('plugins')
 
@@ -206,7 +206,8 @@ class PluginManager:
                 if log_callback:
                     plugin.set_log_callback(log_callback)
                 try:
-                    result = plugin.analyze(log_content)
+                    result = plugin.analyze(log_content, task_name=task_name,
+                                            bmc_ip=bmc_ip, date=date, source=source)
                     results.append(result)
                 except Exception as e:
                     logger.error(f"运行插件 {plugin_id} 时出错: {e}")
@@ -215,63 +216,11 @@ class PluginManager:
             raise RuntimeError("没有插件成功执行")
 
         if source == 'cli':
-            return self.convert_to_cli_result(results, task_name, bmc_ip, date)
+            cli_results = [r for r in results if isinstance(r, CliResult)]
+            if cli_results:
+                return cli_results[0].to_list()
+            raise RuntimeError("插件未返回CliResult")
         return self.combine_results(results)
-
-    def convert_to_cli_result(self, results: List[AnalysisResult],
-                              task_name: str, bmc_ip: str, date: str) -> list:
-        """将AnalysisResult列表转换为CLI返回格式。"""
-        total_errors = 0
-        total_warnings = 0
-        description_parts = []
-        log_detail = {}
-
-        for result in results:
-            for section in result.sections:
-                section_dict = section.to_dict()
-                counts = count_severity([section_dict])
-                total_errors += counts['errors']
-                total_warnings += counts['warnings']
-
-                # 从stats区块提取错误/警告摘要
-                if section_dict.get('type') == 'stats':
-                    for item in section_dict.get('items', []):
-                        if item.get('severity') in ('error', 'warning'):
-                            description_parts.append(f"{item['label']}: {item['value']}")
-
-                # 从table区块提取错误/警告详情
-                if section_dict.get('type') == 'table' and section_dict.get('severity') in ('error', 'warning'):
-                    for row in section_dict.get('rows', [])[:10]:
-                        msg = row.get('message', row.get('line', ''))
-                        if msg:
-                            description_parts.append(str(msg)[:100])
-
-        status = 'ERROR' if total_errors > 0 else 'OK'
-        description = '; '.join(description_parts)[:1000]
-
-        if total_errors > 0 or total_warnings > 0:
-            log_detail = {'errors': total_errors, 'warnings': total_warnings}
-            # 填充详细错误信息，限制序列化后长度3000
-            detail_items = []
-            for result in results:
-                for section in result.sections:
-                    section_dict = section.to_dict()
-                    if section_dict.get('type') == 'table' and section_dict.get('severity') in ('error', 'warning'):
-                        for row in section_dict.get('rows', [])[:20]:
-                            detail_items.append(row)
-            if detail_items:
-                log_detail['items'] = detail_items
-            # 检查长度限制
-            import json as _json
-            detail_str = _json.dumps(log_detail, ensure_ascii=False)
-            if len(detail_str) > 3000:
-                # 截断items
-                while len(_json.dumps(log_detail, ensure_ascii=False)) > 3000 and log_detail.get('items'):
-                    log_detail['items'] = log_detail['items'][:-1]
-                if not log_detail.get('items'):
-                    log_detail.pop('items', None)
-
-        return [task_name, bmc_ip, status, description, log_detail, date]
 
     def combine_results(self, results: List[AnalysisResult]) -> Dict[str, Any]:
         """合并多个分析结果，按插件 ID 区分。"""

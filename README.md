@@ -43,16 +43,22 @@ my_plugin/
 ### plugin.py 实现
 
 ```python
-from plugins.base import BasePlugin, AnalysisResult, ResultMeta, StatsItem
+from typing import Dict, List, Union
+from plugins.base import BasePlugin, AnalysisResult, ResultMeta, StatsItem, CliResult
 
 class MyPlugin(BasePlugin):
-    def analyze(self, log_content: Dict[str, List[str]]) -> AnalysisResult:
+    def analyze(self, log_content: Dict[str, List[str]],
+                task_name: str = "", bmc_ip: str = "", date: str = "",
+                source: str = "system") -> Union[AnalysisResult, CliResult]:
         from datetime import datetime
 
         # log_content 是 {"相对路径": ["行1", "行2"]} 字典
         # 例如: {"system.log": ["日志行1", "日志行2"], "sub/error.log": ["错误行1"]}
         log_files = list(log_content.keys())
 
+        # 执行分析逻辑...
+
+        # 构建 system 格式返回值
         meta = ResultMeta(
             plugin_id=self.id,
             plugin_name=self.name,
@@ -66,6 +72,20 @@ class MyPlugin(BasePlugin):
         result.add_stats("分析概览", [
             StatsItem(label="文件数", value=len(log_files), severity="info"),
         ])
+
+        # 同时构建 cli 格式返回值
+        cli_result = CliResult(
+            task_name=task_name,
+            bmc_ip=bmc_ip,
+            status='OK',
+            description='正常',
+            log_detail={},
+            date=date
+        )
+
+        # 根据 source 按需返回
+        if source == 'cli':
+            return cli_result
         return result
 
 plugin_class = MyPlugin
@@ -74,22 +94,30 @@ plugin_class = MyPlugin
 **`analyze()` 接口说明：**
 
 ```python
-def analyze(self, log_content: Dict[str, List[str]]) -> AnalysisResult:
+def analyze(self, log_content: Dict[str, List[str]],
+            task_name: str = "", bmc_ip: str = "", date: str = "",
+            source: str = "system") -> Union[AnalysisResult, CliResult]:
     """
-    分析日志内容。
+    分析日志内容，同时生成两套返回值，根据 source 按需返回。
 
     Args:
         log_content: {"日志名/相对路径": ["行1", "行2"]} 字典，值为行列表。
             - 单文件时: {"system.log": ["行1", "行2"]}
             - 目录时: {"system.log": [...], "sub/error.log": [...]}，键为相对路径
+        task_name: 任务名称（cli模式使用，默认空）
+        bmc_ip: BMC IP地址（cli模式使用，默认空）
+        date: 日期（cli模式使用，默认空）
+        source: 调用来源，'cli' 或 'system'（默认 'system'）
 
     Returns:
-        包含分析结果的 AnalysisResult。
+        source='system' 时返回 AnalysisResult
+        source='cli' 时返回 CliResult
     """
 ```
 
-> 注意：插件不再接收文件路径，而是接收已读取的日志内容字典（值为行列表）。调用方负责通过
-> `read_log_files_to_content(path)` 读取文件。
+> **重要**：插件必须在 `analyze()` 内部**同时生成两套返回值**（`AnalysisResult` 和 `CliResult`），
+> 然后根据 `source` 参数决定返回哪一套。每个插件自行控制 `CliResult` 中 `description` 和 `log_detail`
+> 的内容，不要依赖外层统一转换。
 
 ## API 文档
 
@@ -138,8 +166,37 @@ def run_analysis(self, source: str, plugin_ids: List[str],
 - `source='system'` 时：`{plugin_id: {'meta': ..., 'sections': ...}}`
 - `source='cli'` 时：`[task_name, bmc_ip, status, description, log_detail, date]`
   - `status`: `'ERROR'`（有错误）或 `'OK'`
-  - `description`: 错误/警告摘要文本
-  - `log_detail`: `{'errors': int, 'warnings': int, 'items': [...]}` 或空字典
+  - `description`: 错误/警告摘要文本（最长1000字符）
+  - `log_detail`: 详细信息字典（序列化后最长3000字符）
+
+### CliResult 数据类
+
+插件在 `analyze()` 内部构建 `CliResult` 对象，`to_list()` 方法将其转为列表格式：
+
+```python
+from plugins.base import CliResult
+
+cli_result = CliResult(
+    task_name="巡检任务",      # 透传输入参数
+    bmc_ip="192.168.1.1",     # 透传输入参数
+    status='ERROR',            # 'OK' 或 'ERROR'
+    description='错误数: 15; 警告数: 23',  # 自定义描述，限1000字符
+    log_detail={'errors': 15, 'warnings': 23, 'items': [...]},  # 自定义详情，限3000字符
+    date="2026-05-09"         # 透传输入参数
+)
+
+# 转为列表: ["巡检任务", "192.168.1.1", "ERROR", "错误数: 15; 警告数: 23", {...}, "2026-05-09"]
+output = cli_result.to_list()
+```
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| task_name | str | 透传输入的任务名称 |
+| bmc_ip | str | 透传输入的BMC IP地址 |
+| status | str | `'OK'` 或 `'ERROR'`，由插件根据分析结果决定 |
+| description | str | 插件自定义的描述文本，最长1000字符 |
+| log_detail | dict | 插件自定义的详情字典，序列化后最长3000字符 |
+| date | str | 透传输入的日期 |
 
 ### AnalysisResult 格式
 
@@ -609,10 +666,10 @@ html_path = renderer.render_to_file('path/to/plugin_result.json')
 python plugins/cli_main.py plugin list
 
 # 执行分析（从stdin读取JSON格式的日志内容）
-echo '{"system.log": "日志内容..."}' | python plugins/cli_main.py analyze --plugin-id CloudBMC_00001
+echo '{"system.log": ["ERROR disk failure", "WARNING low memory"]}' | python plugins/cli_main.py analyze --plugin-id CloudBMC_00001
 
 # 带额外参数的分析
-echo '{"system.log": "日志内容..."}' | python plugins/cli_main.py analyze \
+echo '{"system.log": ["ERROR disk failure"]}' | python plugins/cli_main.py analyze \
     --plugin-id CloudBMC_00001 \
     --task-name "巡检任务" \
     --bmc-ip "192.168.1.100" \
@@ -625,12 +682,12 @@ echo '{"system.log": "日志内容..."}' | python plugins/cli_main.py analyze \
 
 ```json
 {
-    "system.log": "日志文件全部内容...",
-    "sub/error.log": "错误日志内容..."
+    "system.log": ["行1", "行2", "行3"],
+    "sub/error.log": ["错误行1", "错误行2"]
 }
 ```
 
-键为日志文件名或相对路径，值为文件内容。
+键为日志文件名或相对路径，值为行列表。
 
 ### 输出格式
 

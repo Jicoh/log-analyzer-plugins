@@ -6,7 +6,7 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Dict, Any, List, Optional, Callable
+from typing import Dict, Any, List, Optional, Callable, Union
 from enum import Enum
 
 
@@ -268,6 +268,24 @@ class RawSection:
         }
 
 
+# ========== CliResult ==========
+
+@dataclass
+class CliResult:
+    """CLI模式返回值：[task_name, bmc_ip, status, description, log_detail, date]"""
+    task_name: str = ""
+    bmc_ip: str = ""
+    status: str = "OK"
+    description: str = ""
+    log_detail: str = ""
+    date: str = ""
+
+    def to_list(self) -> list:
+        """转为列表格式 [task_name, bmc_ip, status, description, log_detail, date]"""
+        return [self.task_name, self.bmc_ip, self.status,
+                self.description[:1000], self.log_detail, self.date]
+
+
 # ========== AnalysisResult ==========
 
 @dataclass
@@ -451,15 +469,37 @@ class BasePlugin(ABC):
             log_method = getattr(logging.getLogger('plugins'), log_level, logging.getLogger('plugins').info)
             log_method(log_msg)
 
+    @staticmethod
+    def format_log_detail(detail: dict) -> str:
+        """将字典转为字符串，序列化后超过3000字符则截断items。"""
+        if not detail:
+            return ""
+        import json
+        result = json.dumps(detail, ensure_ascii=False)
+        if len(result) <= 3000:
+            return result
+        while detail.get('items') and len(json.dumps(detail, ensure_ascii=False)) > 3000:
+            detail['items'] = detail['items'][:-1]
+        if not detail.get('items'):
+            detail.pop('items', None)
+        return json.dumps(detail, ensure_ascii=False)
+
     @abstractmethod
-    def analyze(self, log_content: Dict[str, List[str]]) -> AnalysisResult:
+    def analyze(self, log_content: Dict[str, List[str]],
+                task_name: str = "", bmc_ip: str = "", date: str = "",
+                source: str = "system") -> Union[AnalysisResult, 'CliResult']:
         """
         分析日志内容。
 
         Args:
             log_content: {"日志名": ["行1", "行2"]} 字典，值为行列表
+            task_name: 任务名称（cli模式使用，默认空）
+            bmc_ip: BMC IP地址（cli模式使用，默认空）
+            date: 日期（cli模式使用，默认空）
+            source: 调用来源，'cli' 或 'system'（默认 'system'）
 
         Returns:
-            包含分析结果的 AnalysisResult。
+            source='system' 时返回 AnalysisResult
+            source='cli' 时返回 CliResult
         """
         pass

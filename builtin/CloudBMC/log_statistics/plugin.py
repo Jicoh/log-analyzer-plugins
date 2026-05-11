@@ -7,17 +7,19 @@
 import re
 from collections import Counter
 from datetime import datetime
-from typing import Dict, List
+from typing import Dict, List, Union
 
 from plugins.base import (
-    BasePlugin, AnalysisResult, ResultMeta, StatsItem, ChartData
+    BasePlugin, AnalysisResult, ResultMeta, StatsItem, ChartData, CliResult
 )
 
 
 class LogStatisticsPlugin(BasePlugin):
     """日志统计插件。"""
 
-    def analyze(self, log_content: Dict[str, List[str]]) -> AnalysisResult:
+    def analyze(self, log_content: Dict[str, List[str]],
+                task_name: str = "", bmc_ip: str = "", date: str = "",
+                source: str = "system") -> Union[AnalysisResult, CliResult]:
         """分析日志统计信息。"""
         self.log("开始统计分析...")
 
@@ -90,7 +92,32 @@ class LogStatisticsPlugin(BasePlugin):
                 icon="clock"
             )
 
+        # 同时构建cli格式返回值
+        error_count = level_counter.get('ERROR', 0)
+        cli_result = CliResult(
+            task_name=task_name,
+            bmc_ip=bmc_ip,
+            status='ERROR' if error_count > 0 else 'OK',
+            description=self._build_cli_description(level_counter, len(all_lines), total_size),
+            log_detail=self._build_cli_log_detail(level_counter),
+            date=date
+        )
+
+        if source == 'cli':
+            return cli_result
         return result
+
+    def _build_cli_description(self, level_counter: Counter, total_lines: int, total_size: int) -> str:
+        """构建cli模式的描述信息"""
+        parts = [f"总行数: {total_lines}", f"文件大小: {total_size/1024:.1f}KB"]
+        for level in ['ERROR', 'WARNING', 'INFO', 'DEBUG']:
+            if level in level_counter:
+                parts.append(f"{level}: {level_counter[level]}")
+        return '; '.join(parts)[:1000]
+
+    def _build_cli_log_detail(self, level_counter: Counter) -> str:
+        """构建cli模式的日志详情"""
+        return self.format_log_detail(dict(level_counter))
 
 
 # 导出插件类
