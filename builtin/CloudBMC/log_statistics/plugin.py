@@ -7,7 +7,7 @@
 import re
 from collections import Counter
 from datetime import datetime
-from typing import Dict
+from typing import Dict, List
 
 from plugins.base import (
     BasePlugin, AnalysisResult, ResultMeta, StatsItem, ChartData
@@ -17,17 +17,16 @@ from plugins.base import (
 class LogStatisticsPlugin(BasePlugin):
     """日志统计插件。"""
 
-    def analyze(self, log_content: Dict[str, str]) -> AnalysisResult:
+    def analyze(self, log_content: Dict[str, List[str]]) -> AnalysisResult:
         """分析日志统计信息。"""
         self.log("开始统计分析...")
 
         # 从log_content字典中提取所有行
         all_lines = []
         total_size = 0
-        for log_name, content in log_content.items():
-            lines = content.splitlines()
+        for log_name, lines in log_content.items():
             all_lines.extend(lines)
-            total_size += len(content.encode('utf-8'))
+            total_size += sum(len(line.encode('utf-8')) for line in lines)
 
         self.log(f"读取到 {len(all_lines)} 行日志")
 

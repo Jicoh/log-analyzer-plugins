@@ -21,8 +21,15 @@ def plugin_manager():
 def sample_log_content():
     """示例日志内容"""
     return {
-        "system.log": "2024-01-01 10:00:00 ERROR disk read failure\n2024-01-01 10:01:00 WARNING low memory\n2024-01-01 10:02:00 INFO system started",
-        "app.log": "2024-01-01 11:00:00 INFO application started\n2024-01-01 11:01:00 ERROR connection failed"
+        "system.log": [
+            "2024-01-01 10:00:00 ERROR disk read failure",
+            "2024-01-01 10:01:00 WARNING low memory",
+            "2024-01-01 10:02:00 INFO system started"
+        ],
+        "app.log": [
+            "2024-01-01 11:00:00 INFO application started",
+            "2024-01-01 11:01:00 ERROR connection failed"
+        ]
     }
 
 
@@ -30,7 +37,10 @@ def sample_log_content():
 def clean_log_content():
     """无错误日志内容"""
     return {
-        "system.log": "2024-01-01 10:00:00 INFO system started\n2024-01-01 10:01:00 INFO service running"
+        "system.log": [
+            "2024-01-01 10:00:00 INFO system started",
+            "2024-01-01 10:01:00 INFO service running"
+        ]
     }
 
 
@@ -120,7 +130,7 @@ class TestRunAnalysisCliFormat:
         """description长度不超过1000"""
         # 构造大量错误日志
         log_content = {
-            "big.log": "\n".join([f"ERROR error number {i} with long description" for i in range(200)])
+            "big.log": [f"ERROR error number {i} with long description" for i in range(200)]
         }
         result = plugin_manager.run_analysis(
             'cli', ['CloudBMC_00001'], log_content
@@ -131,7 +141,7 @@ class TestRunAnalysisCliFormat:
     def test_cli_log_detail_length_limit(self, plugin_manager):
         """log_detail序列化后长度不超过3000"""
         log_content = {
-            "big.log": "\n".join([f"ERROR error number {i}" for i in range(500)])
+            "big.log": [f"ERROR error number {i}" for i in range(500)]
         }
         result = plugin_manager.run_analysis(
             'cli', ['CloudBMC_00001'], log_content

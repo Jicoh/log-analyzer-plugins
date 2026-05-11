@@ -5,7 +5,7 @@
 """
 
 from datetime import datetime
-from typing import Dict
+from typing import Dict, List
 
 from plugins.base import (
     BasePlugin, AnalysisResult, ResultMeta, StatsItem
@@ -15,14 +15,13 @@ from plugins.base import (
 class LogParserPlugin(BasePlugin):
     """日志解析插件。"""
 
-    def analyze(self, log_content: Dict[str, str]) -> AnalysisResult:
+    def analyze(self, log_content: Dict[str, List[str]]) -> AnalysisResult:
         """分析日志内容。"""
         self.log("开始解析日志...")
 
         # 从log_content字典中提取所有行
         all_lines = []
-        for log_name, content in log_content.items():
-            lines = content.splitlines()
+        for log_name, lines in log_content.items():
             all_lines.extend(lines)
 
         self.log(f"读取到 {len(all_lines)} 行日志")

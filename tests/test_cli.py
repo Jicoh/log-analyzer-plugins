@@ -50,7 +50,7 @@ class TestAnalyzeStdin:
     """analyze 命令测试"""
 
     def test_analyze_error_log(self):
-        log_content = json.dumps({"system.log": "ERROR disk read failure"})
+        log_content = json.dumps({"system.log": ["ERROR disk read failure"]})
         result = run_cli('analyze', '--plugin-id', 'CloudBMC_00001', stdin_data=log_content)
         assert result.returncode == 0
         output = json.loads(result.stdout)
@@ -60,14 +60,14 @@ class TestAnalyzeStdin:
         assert output[2] == 'ERROR'
 
     def test_analyze_clean_log(self):
-        log_content = json.dumps({"system.log": "INFO system started\nINFO running"})
+        log_content = json.dumps({"system.log": ["INFO system started", "INFO running"]})
         result = run_cli('analyze', '--plugin-id', 'CloudBMC_00001', stdin_data=log_content)
         assert result.returncode == 0
         output = json.loads(result.stdout)
         assert output[2] == 'OK'
 
     def test_analyze_with_optional_params(self):
-        log_content = json.dumps({"system.log": "INFO ok"})
+        log_content = json.dumps({"system.log": ["INFO ok"]})
         result = run_cli(
             'analyze', '--plugin-id', 'CloudBMC_00001',
             '--task-name', 'my_task',
@@ -92,7 +92,7 @@ class TestAnalyzeStdin:
         assert '字典格式' in result.stderr
 
     def test_analyze_description_field(self):
-        log_content = json.dumps({"system.log": "ERROR disk failure\nWARNING low memory"})
+        log_content = json.dumps({"system.log": ["ERROR disk failure", "WARNING low memory"]})
         result = run_cli('analyze', '--plugin-id', 'CloudBMC_00001', stdin_data=log_content)
         assert result.returncode == 0
         output = json.loads(result.stdout)
@@ -101,7 +101,7 @@ class TestAnalyzeStdin:
         assert len(description) <= 1000
 
     def test_analyze_log_detail_field(self):
-        log_content = json.dumps({"system.log": "ERROR failure\nWARNING issue"})
+        log_content = json.dumps({"system.log": ["ERROR failure", "WARNING issue"]})
         result = run_cli('analyze', '--plugin-id', 'CloudBMC_00001', stdin_data=log_content)
         assert result.returncode == 0
         output = json.loads(result.stdout)

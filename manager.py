@@ -177,7 +177,7 @@ class PluginManager:
         return "\n".join(descriptions)
 
     def run_analysis(self, source: str, plugin_ids: List[str],
-                     log_content: Dict[str, str],
+                     log_content: Dict[str, List[str]],
                      task_name: str = "", bmc_ip: str = "", date: str = "",
                      log_callback: Optional[callable] = None) -> Any:
         """
@@ -186,7 +186,7 @@ class PluginManager:
         Args:
             source: 调用来源，'cli' 或 'system'
             plugin_ids: 要运行的插件 ID 列表
-            log_content: {"日志名": "日志内容"} 字典
+            log_content: {"日志名": ["行1", "行2"]} 字典，值为行列表
             task_name: 任务名称（cli模式使用）
             bmc_ip: BMC IP地址（cli模式使用）
             date: 日期（cli模式使用）

@@ -25,7 +25,7 @@ class TestLogParserWithLogContent:
         assert plugin is not None
 
         log_content = {
-            "system.log": "ERROR disk read failure\nWARNING low memory\nINFO started"
+            "system.log": ["ERROR disk read failure", "WARNING low memory", "INFO started"]
         }
         result = plugin.analyze(log_content)
         assert isinstance(result, AnalysisResult)
@@ -34,7 +34,7 @@ class TestLogParserWithLogContent:
     def test_detects_errors(self, plugin_manager):
         plugin = plugin_manager.get_plugin('CloudBMC_00001')
         log_content = {
-            "test.log": "ERROR something went wrong\nFAIL again"
+            "test.log": ["ERROR something went wrong", "FAIL again"]
         }
         result = plugin.analyze(log_content)
         # 检查sections中有error相关的统计
@@ -49,7 +49,7 @@ class TestLogParserWithLogContent:
     def test_detects_warnings(self, plugin_manager):
         plugin = plugin_manager.get_plugin('CloudBMC_00001')
         log_content = {
-            "test.log": "WARNING something suspicious"
+            "test.log": ["WARNING something suspicious"]
         }
         result = plugin.analyze(log_content)
         found_warning_stat = False
@@ -63,8 +63,8 @@ class TestLogParserWithLogContent:
     def test_log_files_in_meta(self, plugin_manager):
         plugin = plugin_manager.get_plugin('CloudBMC_00001')
         log_content = {
-            "a.log": "INFO line1",
-            "b.log": "INFO line2"
+            "a.log": ["INFO line1"],
+            "b.log": ["INFO line2"]
         }
         result = plugin.analyze(log_content)
         assert set(result.meta.log_files) == {"a.log", "b.log"}
@@ -78,7 +78,7 @@ class TestLogStatisticsWithLogContent:
         assert plugin is not None
 
         log_content = {
-            "system.log": "ERROR disk failure\nWARNING low memory\nINFO started"
+            "system.log": ["ERROR disk failure", "WARNING low memory", "INFO started"]
         }
         result = plugin.analyze(log_content)
         assert isinstance(result, AnalysisResult)
@@ -87,7 +87,7 @@ class TestLogStatisticsWithLogContent:
     def test_counts_log_lines(self, plugin_manager):
         plugin = plugin_manager.get_plugin('CloudBMC_00002')
         log_content = {
-            "test.log": "line1\nline2\nline3"
+            "test.log": ["line1", "line2", "line3"]
         }
         result = plugin.analyze(log_content)
         # 检查总行数统计

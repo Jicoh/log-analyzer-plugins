@@ -54,7 +54,7 @@ class TestBinaryAnalyze:
     """analyze 命令测试"""
 
     def test_analyze_returncode_success(self):
-        log_content = json.dumps({"system.log": "INFO ok"})
+        log_content = json.dumps({"system.log": ["INFO ok"]})
         result = run_binary('analyze', '--plugin-id', 'CloudBMC_00001', stdin_data=log_content)
         assert result.returncode == 0
 

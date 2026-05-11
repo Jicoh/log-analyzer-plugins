@@ -452,12 +452,12 @@ class BasePlugin(ABC):
             log_method(log_msg)
 
     @abstractmethod
-    def analyze(self, log_content: Dict[str, str]) -> AnalysisResult:
+    def analyze(self, log_content: Dict[str, List[str]]) -> AnalysisResult:
         """
         分析日志内容。
 
         Args:
-            log_content: {"日志名": "日志内容"} 字典
+            log_content: {"日志名": ["行1", "行2"]} 字典，值为行列表
 
         Returns:
             包含分析结果的 AnalysisResult。

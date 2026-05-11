@@ -46,11 +46,11 @@ my_plugin/
 from plugins.base import BasePlugin, AnalysisResult, ResultMeta, StatsItem
 
 class MyPlugin(BasePlugin):
-    def analyze(self, log_content: Dict[str, str]) -> AnalysisResult:
+    def analyze(self, log_content: Dict[str, List[str]]) -> AnalysisResult:
         from datetime import datetime
 
-        # log_content 是 {"相对路径": "文件内容"} 字典
-        # 例如: {"system.log": "日志内容...", "sub/error.log": "错误日志..."}
+        # log_content 是 {"相对路径": ["行1", "行2"]} 字典
+        # 例如: {"system.log": ["日志行1", "日志行2"], "sub/error.log": ["错误行1"]}
         log_files = list(log_content.keys())
 
         meta = ResultMeta(
@@ -74,21 +74,21 @@ plugin_class = MyPlugin
 **`analyze()` 接口说明：**
 
 ```python
-def analyze(self, log_content: Dict[str, str]) -> AnalysisResult:
+def analyze(self, log_content: Dict[str, List[str]]) -> AnalysisResult:
     """
     分析日志内容。
 
     Args:
-        log_content: {"日志名/相对路径": "日志内容"} 字典。
-            - 单文件时: {"system.log": "文件全部内容"}
-            - 目录时: {"system.log": "...", "sub/error.log": "..."}，键为相对路径
+        log_content: {"日志名/相对路径": ["行1", "行2"]} 字典，值为行列表。
+            - 单文件时: {"system.log": ["行1", "行2"]}
+            - 目录时: {"system.log": [...], "sub/error.log": [...]}，键为相对路径
 
     Returns:
         包含分析结果的 AnalysisResult。
     """
 ```
 
-> 注意：插件不再接收文件路径，而是接收已读取的日志内容字典。调用方负责通过
+> 注意：插件不再接收文件路径，而是接收已读取的日志内容字典（值为行列表）。调用方负责通过
 > `read_log_files_to_content(path)` 读取文件。
 
 ## API 文档
@@ -105,7 +105,7 @@ categories = manager.get_plugins_categories()
 
 # 读取日志内容
 log_content = read_log_files_to_content("/path/to/logfile_or_dir")
-# log_content 格式: {"system.log": "文件内容...", "sub/error.log": "错误内容..."}
+# log_content 格式: {"system.log": ["行1", "行2"], "sub/error.log": ["错误行1"]}
 
 # system模式：Web/主程序使用，返回 {plugin_id: {'meta': ..., 'sections': ...}}
 result = manager.run_analysis('system', ["CloudBMC_00001"], log_content)
@@ -119,7 +119,7 @@ result = manager.run_analysis('cli', ["CloudBMC_00001"], log_content,
 
 ```python
 def run_analysis(self, source: str, plugin_ids: List[str],
-                 log_content: Dict[str, str],
+                 log_content: Dict[str, List[str]],
                  task_name: str = "", bmc_ip: str = "", date: str = "",
                  log_callback: Optional[callable] = None) -> Any:
 ```
@@ -128,7 +128,7 @@ def run_analysis(self, source: str, plugin_ids: List[str],
 |------|------|------|
 | source | str | 调用来源：`'system'`（Web/主程序）或 `'cli'`（命令行） |
 | plugin_ids | List[str] | 要运行的插件 ID 列表 |
-| log_content | Dict[str, str] | `{"日志名/相对路径": "日志内容"}` 字典 |
+| log_content | Dict[str, List[str]] | `{"日志名/相对路径": ["行1", "行2"]}` 字典，值为行列表 |
 | task_name | str | 任务名称（cli模式使用，默认空） |
 | bmc_ip | str | BMC IP地址（cli模式使用，默认空） |
 | date | str | 日期（cli模式使用，默认空） |
@@ -660,11 +660,11 @@ from src.utils.file_utils import read_log_files_to_content
 
 # 单文件
 log_content = read_log_files_to_content("/path/to/system.log")
-# 返回: {"system.log": "文件内容..."}
+# 返回: {"system.log": ["行1", "行2"]}
 
 # 目录（递归读取所有有效日志文件）
 log_content = read_log_files_to_content("/path/to/log_dir/")
-# 返回: {"system.log": "...", "sub/error.log": "..."}
+# 返回: {"system.log": ["行1", ...], "sub/error.log": ["行1", ...]}
 ```
 
 - 单文件时，键为文件名（`os.path.basename`）
