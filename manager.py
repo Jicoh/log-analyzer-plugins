@@ -36,6 +36,11 @@ class PluginManager:
                     os.path.join(plugins_dir, '..', 'custom_plugins')
                 ]
 
+    def _is_development_mode(self) -> bool:
+        """检测是否为开发环境"""
+        # 打包后的 exe 不是开发环境，源码运行是开发环境
+        return not getattr(sys, 'frozen', False)
+
     def load_plugins(self) -> int:
         """扫描并加载所有插件。"""
         loaded_count = 0
@@ -53,6 +58,10 @@ class PluginManager:
                 # 检查是否是分类目录（CloudBMC、iBMC、LxBMC）
                 if item in ['CloudBMC', 'iBMC', 'LxBMC']:
                     loaded_count += self.scan_directory(item_path, plugin_type=item)
+                elif item == 'example':
+                    # 仅在开发环境加载 example 插件
+                    if self._is_development_mode():
+                        loaded_count += self.scan_directory(item_path, plugin_type='example')
                 else:
                     # 普通插件目录
                     plugin = self.load_plugin(item_path, plugin_type)
@@ -144,7 +153,8 @@ class PluginManager:
         categories = {
             'CloudBMC': {'plugins': []},
             'iBMC': {'plugins': []},
-            'LxBMC': {'plugins': []}
+            'LxBMC': {'plugins': []},
+            'example': {'plugins': []}
         }
         for p in self._plugins.values():
             plugin_type = p.get_plugin_type()

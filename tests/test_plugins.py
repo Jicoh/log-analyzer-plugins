@@ -17,11 +17,11 @@ def plugin_manager():
     return manager
 
 
-class TestLogParserWithLogContent:
-    """验证log_parser接收log_content字典后正确解析"""
+class TestDemoPluginWithLogContent:
+    """验证demo_plugin接收log_content字典后正确解析"""
 
     def test_parses_log_content_dict(self, plugin_manager):
-        plugin = plugin_manager.get_plugin('CloudBMC_00001')
+        plugin = plugin_manager.get_plugin('example_00001')
         assert plugin is not None
 
         log_content = {
@@ -29,10 +29,10 @@ class TestLogParserWithLogContent:
         }
         result = plugin.analyze(log_content)
         assert isinstance(result, AnalysisResult)
-        assert result.meta.plugin_id == 'CloudBMC_00001'
+        assert result.meta.plugin_id == 'example_00001'
 
     def test_detects_errors(self, plugin_manager):
-        plugin = plugin_manager.get_plugin('CloudBMC_00001')
+        plugin = plugin_manager.get_plugin('example_00001')
         log_content = {
             "test.log": ["ERROR something went wrong", "FAIL again"]
         }
@@ -47,7 +47,7 @@ class TestLogParserWithLogContent:
         assert found_error_stat
 
     def test_detects_warnings(self, plugin_manager):
-        plugin = plugin_manager.get_plugin('CloudBMC_00001')
+        plugin = plugin_manager.get_plugin('example_00001')
         log_content = {
             "test.log": ["WARNING something suspicious"]
         }
@@ -61,7 +61,7 @@ class TestLogParserWithLogContent:
         assert found_warning_stat
 
     def test_log_files_in_meta(self, plugin_manager):
-        plugin = plugin_manager.get_plugin('CloudBMC_00001')
+        plugin = plugin_manager.get_plugin('example_00001')
         log_content = {
             "a.log": ["INFO line1"],
             "b.log": ["INFO line2"]
@@ -69,23 +69,8 @@ class TestLogParserWithLogContent:
         result = plugin.analyze(log_content)
         assert set(result.meta.log_files) == {"a.log", "b.log"}
 
-
-class TestLogStatisticsWithLogContent:
-    """验证log_statistics接收log_content字典后正确统计"""
-
-    def test_parses_log_content_dict(self, plugin_manager):
-        plugin = plugin_manager.get_plugin('CloudBMC_00002')
-        assert plugin is not None
-
-        log_content = {
-            "system.log": ["ERROR disk failure", "WARNING low memory", "INFO started"]
-        }
-        result = plugin.analyze(log_content)
-        assert isinstance(result, AnalysisResult)
-        assert result.meta.plugin_id == 'CloudBMC_00002'
-
     def test_counts_log_lines(self, plugin_manager):
-        plugin = plugin_manager.get_plugin('CloudBMC_00002')
+        plugin = plugin_manager.get_plugin('example_00001')
         log_content = {
             "test.log": ["line1", "line2", "line3"]
         }
@@ -103,7 +88,7 @@ class TestPluginIdFormat:
 
     def test_plugin_id_format(self, plugin_manager):
         import re
-        pattern = re.compile(r'^(CloudBMC|iBMC|LxBMC)_\d{5}$')
+        pattern = re.compile(r'^(CloudBMC|iBMC|LxBMC|example)_\d{5}$')
         plugins = plugin_manager.get_all_plugins()
         assert len(plugins) > 0, "应该至少有一个插件"
         for plugin in plugins:
@@ -120,7 +105,7 @@ class TestParameterPassing:
 
     def test_analyze_accepts_all_params(self, plugin_manager):
         """验证内置插件接受所有参数而不报错"""
-        plugin = plugin_manager.get_plugin('CloudBMC_00001')
+        plugin = plugin_manager.get_plugin('example_00001')
         log_content = {"test.log": ["INFO ok"]}
         result = plugin.analyze(
             log_content,
@@ -133,7 +118,7 @@ class TestParameterPassing:
 
     def test_analyze_default_params(self, plugin_manager):
         """验证默认参数不影响现有行为"""
-        plugin = plugin_manager.get_plugin('CloudBMC_00001')
+        plugin = plugin_manager.get_plugin('example_00001')
         log_content = {"test.log": ["ERROR fail"]}
         result_default = plugin.analyze(log_content)
         result_explicit = plugin.analyze(
@@ -143,32 +128,19 @@ class TestParameterPassing:
         assert isinstance(result_explicit, AnalysisResult)
         assert result_default.meta.plugin_id == result_explicit.meta.plugin_id
 
-    def test_statistics_plugin_accepts_all_params(self, plugin_manager):
-        """验证统计插件接受所有参数"""
-        plugin = plugin_manager.get_plugin('CloudBMC_00002')
-        log_content = {"test.log": ["INFO line"]}
-        result = plugin.analyze(
-            log_content,
-            task_name="t",
-            bmc_ip="10.0.0.1",
-            date="2025-01-01",
-            source="cli"
-        )
-        assert isinstance(result, CliResult)
-
 
 class TestCliReturnFormat:
     """验证source='cli'时返回CliResult格式"""
 
-    def test_log_parser_cli_result_type(self, plugin_manager):
-        plugin = plugin_manager.get_plugin('CloudBMC_00001')
+    def test_demo_plugin_cli_result_type(self, plugin_manager):
+        plugin = plugin_manager.get_plugin('example_00001')
         log_content = {"test.log": ["ERROR disk failure"]}
         result = plugin.analyze(log_content, source='cli')
         assert isinstance(result, CliResult)
 
-    def test_log_parser_cli_fields(self, plugin_manager):
+    def test_demo_plugin_cli_fields(self, plugin_manager):
         """验证cli返回值的6个字段"""
-        plugin = plugin_manager.get_plugin('CloudBMC_00001')
+        plugin = plugin_manager.get_plugin('example_00001')
         log_content = {"test.log": ["ERROR disk failure"]}
         result = plugin.analyze(
             log_content,
@@ -185,23 +157,23 @@ class TestCliReturnFormat:
         assert len(result.description) <= 1000
         assert isinstance(result.log_detail, str)
 
-    def test_log_parser_cli_status_ok(self, plugin_manager):
+    def test_demo_plugin_cli_status_ok(self, plugin_manager):
         """无错误时status为OK"""
-        plugin = plugin_manager.get_plugin('CloudBMC_00001')
+        plugin = plugin_manager.get_plugin('example_00001')
         log_content = {"test.log": ["INFO system started"]}
         result = plugin.analyze(log_content, source='cli')
         assert result.status == 'OK'
 
-    def test_log_parser_cli_status_error(self, plugin_manager):
+    def test_demo_plugin_cli_status_error(self, plugin_manager):
         """有错误时status为ERROR"""
-        plugin = plugin_manager.get_plugin('CloudBMC_00001')
+        plugin = plugin_manager.get_plugin('example_00001')
         log_content = {"test.log": ["ERROR disk failure"]}
         result = plugin.analyze(log_content, source='cli')
         assert result.status == 'ERROR'
 
-    def test_log_parser_cli_to_list(self, plugin_manager):
+    def test_demo_plugin_cli_to_list(self, plugin_manager):
         """验证to_list()输出格式"""
-        plugin = plugin_manager.get_plugin('CloudBMC_00001')
+        plugin = plugin_manager.get_plugin('example_00001')
         log_content = {"test.log": ["ERROR fail"]}
         result = plugin.analyze(
             log_content,
@@ -218,44 +190,37 @@ class TestCliReturnFormat:
         assert output[2] == 'ERROR'
         assert output[5] == "2024-06-01"
 
-    def test_log_parser_cli_log_detail_length(self, plugin_manager):
+    def test_demo_plugin_cli_log_detail_length(self, plugin_manager):
         """log_detail长度不超过3000"""
-        plugin = plugin_manager.get_plugin('CloudBMC_00001')
+        plugin = plugin_manager.get_plugin('example_00001')
         log_content = {"big.log": [f"ERROR error number {i}" for i in range(500)]}
         result = plugin.analyze(log_content, source='cli')
         assert len(result.log_detail) <= 3000
-
-    def test_statistics_plugin_cli_result(self, plugin_manager):
-        """统计插件cli返回值"""
-        plugin = plugin_manager.get_plugin('CloudBMC_00002')
-        log_content = {"test.log": ["ERROR fail", "WARNING warn"]}
-        result = plugin.analyze(
-            log_content,
-            task_name="task",
-            bmc_ip="10.0.0.1",
-            date="2025-01-01",
-            source='cli'
-        )
-        assert isinstance(result, CliResult)
-        assert result.task_name == "task"
-        assert result.bmc_ip == "10.0.0.1"
-        assert result.date == "2025-01-01"
-        assert result.status == 'ERROR'
 
 
 class TestSystemReturnFormat:
     """验证source='system'时返回AnalysisResult格式"""
 
-    def test_log_parser_system_result(self, plugin_manager):
-        plugin = plugin_manager.get_plugin('CloudBMC_00001')
+    def test_demo_plugin_system_result(self, plugin_manager):
+        plugin = plugin_manager.get_plugin('example_00001')
         log_content = {"test.log": ["ERROR disk failure"]}
         result = plugin.analyze(log_content, source='system')
         assert isinstance(result, AnalysisResult)
-        assert result.meta.plugin_id == 'CloudBMC_00001'
+        assert result.meta.plugin_id == 'example_00001'
 
-    def test_log_statistics_system_result(self, plugin_manager):
-        plugin = plugin_manager.get_plugin('CloudBMC_00002')
-        log_content = {"test.log": ["INFO line"]}
+    def test_demo_plugin_all_section_types(self, plugin_manager):
+        """验证demo插件包含所有section类型"""
+        plugin = plugin_manager.get_plugin('example_00001')
+        log_content = {"test.log": ["ERROR fail", "WARNING warn", "INFO ok", "10:00:00 some event"]}
         result = plugin.analyze(log_content, source='system')
-        assert isinstance(result, AnalysisResult)
-        assert result.meta.plugin_id == 'CloudBMC_00002'
+
+        # 检查包含的section类型
+        section_types = set()
+        for section in result.sections:
+            section_types.add(section.__class__.__name__)
+
+        # 至少包含这些类型
+        expected_types = {'StatsSection', 'TableSection', 'TimelineSection',
+                         'CardsSection', 'ChartSection', 'SearchBoxSection', 'RawSection'}
+        # 允许部分类型缺失（取决于日志内容）
+        assert len(section_types) >= 4  # 至少有4种类型

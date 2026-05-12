@@ -1,0 +1,7 @@
+{
+    "id": "example_00001",
+    "name": "Demo Plugin",
+    "version": "1.0.0",
+    "description": "示例插件，展示所有返回值类型（stats、table、timeline、cards、chart、search_box、raw）",
+    "plugin_type": "example"
+}
