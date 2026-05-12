@@ -72,7 +72,7 @@ def cmd_analyze(manager, args):
         bmc_ip=args.bmc_ip or "",
         date=args.date or ""
     )
-    print(json.dumps(result, ensure_ascii=False))
+    print(result)
     return 0
 
 

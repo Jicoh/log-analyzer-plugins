@@ -73,7 +73,7 @@ class MyPlugin(BasePlugin):
             StatsItem(label="文件数", value=len(log_files), severity="info"),
         ])
 
-        # 同时构建 cli 格式返回值
+        # 同时构建 cli 格式返回值, task_name, bmc_ip, date不需要修改，直接使用入参赋值
         cli_result = CliResult(
             task_name=task_name,
             bmc_ip=bmc_ip,
