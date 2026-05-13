@@ -421,7 +421,7 @@ class BasePlugin(ABC):
         return self._name
 
     def get_plugin_type(self) -> str:
-        """插件所属类型：CloudBMC、iBMC、LxBMC。"""
+        """插件所属类型，由目录结构决定。"""
         return self._plugin_type
 
     def get_chinese_description(self) -> str:

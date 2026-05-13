@@ -38,6 +38,7 @@ builtin/
 ├── CloudBMC/          # CloudBMC plugins (only loaded in main project)
 ├── iBMC/              # iBMC plugins (only loaded in main project)
 ├── LxBMC/             # LxBMC plugins (only loaded in main project)
+├── HNT1/              # HNT1 plugins (only loaded in main project)
 └── example/           # Demo plugins (only loaded in development mode)
     └── demo_plugin/
         ├── plugin.py    # Required: implements BasePlugin

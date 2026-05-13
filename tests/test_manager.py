@@ -6,8 +6,8 @@ import json
 import pytest
 from unittest.mock import MagicMock
 
-from plugins.manager import PluginManager
-from plugins.base import AnalysisResult, ResultMeta, StatsItem, CliResult, count_severity
+from ..manager import PluginManager
+from ..base import AnalysisResult, ResultMeta, StatsItem, CliResult, count_severity
 
 
 @pytest.fixture
@@ -251,3 +251,138 @@ class TestParameterChain:
                              log_callback=callback)
 
         mock_plugin.set_log_callback.assert_called_once_with(callback)
+
+
+class TestCountSeverity:
+    """验证 count_severity 统计逻辑"""
+
+    def test_stats_section_counts(self):
+        sections = [{
+            'type': 'stats',
+            'items': [
+                {'severity': 'error', 'value': 3},
+                {'severity': 'warning', 'value': 5},
+                {'severity': 'info', 'value': 10}
+            ]
+        }]
+        result = count_severity(sections)
+        assert result == {'errors': 3, 'warnings': 5}
+
+    def test_table_section_counts(self):
+        sections = [{
+            'type': 'table',
+            'rows': [
+                {'severity': 'error'},
+                {'severity': 'error'},
+                {'severity': 'warning'},
+                {'severity': 'info'}
+            ]
+        }]
+        result = count_severity(sections)
+        assert result == {'errors': 2, 'warnings': 1}
+
+    def test_timeline_section_counts(self):
+        sections = [{
+            'type': 'timeline',
+            'events': [
+                {'severity': 'error'},
+                {'severity': 'warning'},
+                {'severity': 'info'}
+            ]
+        }]
+        result = count_severity(sections)
+        assert result == {'errors': 1, 'warnings': 1}
+
+    def test_cards_section_counts(self):
+        sections = [{
+            'type': 'cards',
+            'cards': [
+                {'severity': 'error'},
+                {'severity': 'warning'},
+                {'severity': 'warning'}
+            ]
+        }]
+        result = count_severity(sections)
+        assert result == {'errors': 1, 'warnings': 2}
+
+    def test_mixed_sections(self):
+        sections = [
+            {'type': 'stats', 'items': [{'severity': 'error', 'value': 2}]},
+            {'type': 'table', 'rows': [{'severity': 'warning'}]}
+        ]
+        result = count_severity(sections)
+        assert result == {'errors': 2, 'warnings': 1}
+
+    def test_empty_sections(self):
+        result = count_severity([])
+        assert result == {'errors': 0, 'warnings': 0}
+
+    def test_stats_non_numeric_value_ignored(self):
+        sections = [{
+            'type': 'stats',
+            'items': [
+                {'severity': 'error', 'value': 'not_a_number'},
+                {'severity': 'warning', 'value': 1}
+            ]
+        }]
+        result = count_severity(sections)
+        assert result == {'errors': 0, 'warnings': 1}
+
+
+class TestPluginManagerAPI:
+    """验证 PluginManager 完整 API"""
+
+    def test_get_plugins_info(self, plugin_manager):
+        info_list = plugin_manager.get_plugins_info()
+        assert isinstance(info_list, list)
+        assert len(info_list) > 0
+        for info in info_list:
+            assert 'id' in info
+            assert 'name' in info
+            assert 'plugin_type' in info
+            assert 'version' in info
+            assert 'chinese_description' in info
+
+    def test_get_plugins_categories(self, plugin_manager):
+        categories = plugin_manager.get_plugins_categories()
+        assert isinstance(categories, dict)
+        assert 'example' in categories
+        for cat_name, cat_data in categories.items():
+            assert 'plugins' in cat_data
+            assert isinstance(cat_data['plugins'], list)
+
+    def test_get_plugins_ai_description(self, plugin_manager):
+        desc = plugin_manager.get_plugins_ai_description()
+        assert isinstance(desc, str)
+        assert 'example_00001' in desc
+
+    def test_combine_results_empty(self):
+        manager = PluginManager(plugin_dirs=[])
+        assert manager.combine_results([]) == {}
+
+    def test_combine_results_multiple(self):
+        manager = PluginManager(plugin_dirs=[])
+        r1 = AnalysisResult(meta=ResultMeta(
+            plugin_id='p1', plugin_name='P1',
+            version='1.0', analysis_time='2024-01-01'
+        ))
+        r1.add_stats("概览", [StatsItem(label="项", value=1)])
+        r2 = AnalysisResult(meta=ResultMeta(
+            plugin_id='p2', plugin_name='P2',
+            version='1.0', analysis_time='2024-01-01'
+        ))
+        combined = manager.combine_results([r1, r2])
+        assert 'p1' in combined
+        assert 'p2' in combined
+        assert 'meta' in combined['p1']
+        assert 'sections' in combined['p1']
+
+    def test_cleanup(self, plugin_manager):
+        assert len(plugin_manager.get_all_plugins()) > 0
+        plugin_manager.cleanup()
+        assert len(plugin_manager.get_all_plugins()) == 0
+
+    def test_scan_directory_nonexistent(self):
+        manager = PluginManager(plugin_dirs=[])
+        with pytest.raises(FileNotFoundError):
+            manager.scan_directory('/nonexistent/path')

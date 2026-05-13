@@ -54,20 +54,23 @@ class PluginManager:
         loaded_count = 0
         for item in os.listdir(directory):
             item_path = os.path.join(directory, item)
-            if os.path.isdir(item_path):
-                # 检查是否是分类目录（CloudBMC、iBMC、LxBMC）
-                if item in ['CloudBMC', 'iBMC', 'LxBMC']:
-                    loaded_count += self.scan_directory(item_path, plugin_type=item)
-                elif item == 'example':
-                    # 仅在开发环境加载 example 插件
-                    if self._is_development_mode():
-                        loaded_count += self.scan_directory(item_path, plugin_type='example')
-                else:
-                    # 普通插件目录
-                    plugin = self.load_plugin(item_path, plugin_type)
-                    if plugin:
-                        self._plugins[plugin.id] = plugin
-                        loaded_count += 1
+            if not os.path.isdir(item_path):
+                continue
+            # 包含 plugin.py 的是插件目录，否则是分类目录
+            has_plugin = os.path.exists(os.path.join(item_path, 'plugin.py'))
+            if has_plugin:
+                # 普通插件目录
+                plugin = self.load_plugin(item_path, plugin_type)
+                if plugin:
+                    self._plugins[plugin.id] = plugin
+                    loaded_count += 1
+            elif item == 'example':
+                # 仅在开发环境加载 example 插件
+                if self._is_development_mode():
+                    loaded_count += self.scan_directory(item_path, plugin_type='example')
+            else:
+                # 分类目录，目录名即为 plugin_type
+                loaded_count += self.scan_directory(item_path, plugin_type=item)
         return loaded_count
 
     def load_plugin(self, plugin_path: str, plugin_type: str = None) -> Optional[BasePlugin]:
@@ -150,29 +153,17 @@ class PluginManager:
 
     def get_plugins_categories(self) -> Dict[str, Any]:
         """获取按类型分类的插件列表。"""
-        categories = {
-            'CloudBMC': {'plugins': []},
-            'iBMC': {'plugins': []},
-            'LxBMC': {'plugins': []},
-            'example': {'plugins': []}
-        }
+        categories = {}
         for p in self._plugins.values():
             plugin_type = p.get_plugin_type()
-            if plugin_type in categories:
-                categories[plugin_type]['plugins'].append({
-                    'id': p.id,
-                    'name': p.name,
-                    'description': p.get_chinese_description(),
-                    'version': p.get_version()
-                })
-            else:
-                # 未分类的插件放入 LxBMC
-                categories['LxBMC']['plugins'].append({
-                    'id': p.id,
-                    'name': p.name,
-                    'description': p.get_chinese_description(),
-                    'version': p.get_version()
-                })
+            if plugin_type not in categories:
+                categories[plugin_type] = {'plugins': []}
+            categories[plugin_type]['plugins'].append({
+                'id': p.id,
+                'name': p.name,
+                'description': p.get_chinese_description(),
+                'version': p.get_version()
+            })
         return categories
 
     def get_plugins_ai_description(self) -> str:

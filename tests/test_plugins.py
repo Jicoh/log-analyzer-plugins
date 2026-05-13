@@ -5,8 +5,14 @@
 import re
 import pytest
 
-from plugins.manager import PluginManager
-from plugins.base import AnalysisResult, ResultMeta, CliResult
+from ..base import (
+    AnalysisResult, ResultMeta, CliResult,
+    StatsItem, StatsSection, TableColumn, TableSection,
+    TimelineEvent, TimelineSection, CardItem, CardsSection,
+    ChartData, ChartSection, SearchBoxSection, RawSection,
+    BasePlugin
+)
+from ..manager import PluginManager
 
 
 @pytest.fixture
@@ -88,7 +94,7 @@ class TestPluginIdFormat:
 
     def test_plugin_id_format(self, plugin_manager):
         import re
-        pattern = re.compile(r'^(CloudBMC|iBMC|LxBMC|example)_\d{5}$')
+        pattern = re.compile(r'^[A-Za-z]+_\d{5}$')
         plugins = plugin_manager.get_all_plugins()
         assert len(plugins) > 0, "应该至少有一个插件"
         for plugin in plugins:
@@ -224,3 +230,217 @@ class TestSystemReturnFormat:
                          'CardsSection', 'ChartSection', 'SearchBoxSection', 'RawSection'}
         # 允许部分类型缺失（取决于日志内容）
         assert len(section_types) >= 4  # 至少有4种类型
+
+
+class TestDataClassSerialization:
+    """验证所有数据类 to_dict() 序列化正确"""
+
+    def test_result_meta_to_dict(self):
+        meta = ResultMeta(
+            plugin_id='test_00001', plugin_name='Test',
+            version='2.0.0', analysis_time='2024-06-01 12:00:00',
+            log_files=['a.log'], plugin_type='Test',
+            description='测试插件'
+        )
+        d = meta.to_dict()
+        assert d['plugin_id'] == 'test_00001'
+        assert d['plugin_name'] == 'Test'
+        assert d['version'] == '2.0.0'
+        assert d['analysis_time'] == '2024-06-01 12:00:00'
+        assert d['log_files'] == ['a.log']
+        assert d['plugin_type'] == 'Test'
+        assert d['description'] == '测试插件'
+
+    def test_stats_item_to_dict(self):
+        item = StatsItem(label='错误', value=5, unit='个', severity='error', icon='x')
+        d = item.to_dict()
+        assert d['label'] == '错误'
+        assert d['value'] == 5
+        assert d['unit'] == '个'
+        assert d['severity'] == 'error'
+        assert d['icon'] == 'x'
+
+    def test_cli_result_to_list(self):
+        r = CliResult(
+            task_name='t', bmc_ip='1.1.1.1', status='OK',
+            description='ok', log_detail='detail', date='2024-01-01'
+        )
+        lst = r.to_list()
+        assert lst == ['t', '1.1.1.1', 'OK', 'ok', 'detail', '2024-01-01']
+
+    def test_cli_result_description_truncation(self):
+        long_desc = 'x' * 2000
+        r = CliResult(description=long_desc)
+        lst = r.to_list()
+        assert len(lst[3]) == 1000
+
+    def test_analysis_result_to_dict(self):
+        meta = ResultMeta(
+            plugin_id='p1', plugin_name='P', version='1.0',
+            analysis_time='2024-01-01 00:00:00'
+        )
+        result = AnalysisResult(meta=meta)
+        result.add_stats("标题", [StatsItem(label="项", value=1)])
+        d = result.to_dict()
+        assert d['meta']['plugin_id'] == 'p1'
+        assert len(d['sections']) == 1
+        assert d['sections'][0]['type'] == 'stats'
+
+    def test_stats_section_to_dict(self):
+        section = StatsSection(title="概览", icon="bar", items=[
+            StatsItem(label="项", value=10, severity="error")
+        ])
+        d = section.to_dict()
+        assert d['type'] == 'stats'
+        assert d['title'] == '概览'
+        assert d['icon'] == 'bar'
+        assert len(d['items']) == 1
+
+    def test_table_section_to_dict(self):
+        section = TableSection(
+            title="表", severity="warning", icon="t",
+            columns=[{"key": "k", "label": "K"}],
+            rows=[{"k": "v", "severity": "warning"}]
+        )
+        d = section.to_dict()
+        assert d['type'] == 'table'
+        assert d['severity'] == 'warning'
+        assert len(d['columns']) == 1
+        assert len(d['rows']) == 1
+
+    def test_timeline_section_to_dict(self):
+        section = TimelineSection(title="时间线", events=[
+            TimelineEvent(timestamp="2024-01-01 00:00", title="事件", severity="error")
+        ])
+        d = section.to_dict()
+        assert d['type'] == 'timeline'
+        assert len(d['events']) == 1
+        assert d['events'][0]['severity'] == 'error'
+
+    def test_cards_section_to_dict(self):
+        section = CardsSection(title="卡片", cards=[
+            CardItem(title="卡片1", severity="info", content={"k": "v"})
+        ])
+        d = section.to_dict()
+        assert d['type'] == 'cards'
+        assert d['cards'][0]['content'] == {"k": "v"}
+
+    def test_chart_section_to_dict(self):
+        section = ChartSection(
+            title="图表", chart_type="pie",
+            data=ChartData(labels=["A", "B"], values=[10, 20]),
+            options={"x_label": "X"}
+        )
+        d = section.to_dict()
+        assert d['type'] == 'chart'
+        assert d['chart_type'] == 'pie'
+        assert d['data']['labels'] == ["A", "B"]
+        assert d['data']['values'] == [10, 20]
+
+    def test_search_box_section_to_dict(self):
+        section = SearchBoxSection(
+            title="搜索", placeholder="输入",
+            data=[{"msg": "hello"}], search_fields=["msg"]
+        )
+        d = section.to_dict()
+        assert d['type'] == 'search_box'
+        assert d['placeholder'] == '输入'
+        assert d['search_fields'] == ['msg']
+
+    def test_raw_section_to_dict(self):
+        section = RawSection(title="原始", data={"key": "val"})
+        d = section.to_dict()
+        assert d['type'] == 'raw'
+        assert d['data'] == {"key": "val"}
+
+
+class TestBasePluginMethods:
+    """验证 BasePlugin 方法行为"""
+
+    def _make_plugin(self):
+        """创建一个可实例化的插件子类"""
+        class TestPlugin(BasePlugin):
+            def analyze(self, log_content, task_name="", bmc_ip="",
+                        date="", source="system"):
+                return AnalysisResult(meta=ResultMeta(
+                    plugin_id=self.id, plugin_name=self.name,
+                    version=self.get_version(), analysis_time='2024-01-01'
+                ))
+        return TestPlugin()
+
+    def test_set_metadata(self):
+        p = self._make_plugin()
+        p.set_metadata(id='test_00001', name='Test', plugin_type='Test',
+                       version='2.0', description='描述')
+        assert p.id == 'test_00001'
+        assert p.name == 'Test'
+        assert p.get_plugin_type() == 'Test'
+        assert p.get_version() == '2.0'
+        assert p.get_chinese_description() == '描述'
+
+    def test_set_metadata_none_no_override(self):
+        p = self._make_plugin()
+        p.set_metadata(id='orig', name='Orig')
+        p.set_metadata(id=None, name=None, plugin_type='New')
+        assert p.id == 'orig'
+        assert p.name == 'Orig'
+        assert p.get_plugin_type() == 'New'
+
+    def test_log_with_callback(self):
+        p = self._make_plugin()
+        messages = []
+        p.set_log_callback(lambda msg, level: messages.append((msg, level)))
+        p.log("测试消息", "warning")
+        assert len(messages) == 1
+        assert messages[0][1] == "warning"
+        assert "测试消息" in messages[0][0]
+
+    def test_log_without_callback(self):
+        p = self._make_plugin()
+        p.log("无回调")  # 不应抛异常
+
+    def test_set_log_callback(self):
+        p = self._make_plugin()
+        callback = lambda msg, level: None
+        p.set_log_callback(callback)
+        assert p._log_callback is callback
+
+    def test_format_log_detail_empty(self):
+        assert BasePlugin.format_log_detail({}) == ""
+
+    def test_format_log_detail_normal(self):
+        import json
+        detail = {"errors": 1, "items": ["err1"]}
+        result = BasePlugin.format_log_detail(detail)
+        parsed = json.loads(result)
+        assert parsed["errors"] == 1
+
+    def test_format_log_detail_truncation(self):
+        detail = {"items": [f"item_{i}" for i in range(500)]}
+        result = BasePlugin.format_log_detail(detail)
+        assert len(result) <= 3000
+
+    def test_format_log_detail_all_items_removed(self):
+        # 极端情况：items 全部被截断后移除 items key
+        detail = {"items": ["x" * 500 for _ in range(100)]}
+        result = BasePlugin.format_log_detail(detail)
+        assert len(result) <= 3000
+
+
+class TestEdgeCases:
+    """边界情况测试"""
+
+    def test_empty_log_content(self, plugin_manager):
+        plugin = plugin_manager.get_plugin('example_00001')
+        result = plugin.analyze({})
+        assert isinstance(result, AnalysisResult)
+
+    def test_only_empty_lines(self, plugin_manager):
+        plugin = plugin_manager.get_plugin('example_00001')
+        result = plugin.analyze({"test.log": ["", "  ", ""]})
+        assert isinstance(result, AnalysisResult)
+
+    def test_single_line(self, plugin_manager):
+        plugin = plugin_manager.get_plugin('example_00001')
+        result = plugin.analyze({"test.log": ["INFO system ok"]})
+        assert isinstance(result, AnalysisResult)

@@ -38,7 +38,7 @@ my_plugin/
 - `name`: 插件显示名称
 - `version`: 版本号
 - `description`: 中文描述
-- `plugin_type`: 插件类型（CloudBMC、iBMC、LxBMC）
+- `plugin_type`: 插件类型，对应 builtin/ 下的分类目录名
 
 ### plugin.py 实现
 
@@ -292,7 +292,7 @@ output = cli_result.to_list()
 | version | string | 版本号 |
 | analysis_time | string | 分析时间（YYYY-MM-DD HH:MM:SS） |
 | log_files | array | 分析的日志文件路径列表(如果有则必填) |
-| plugin_type | string | 插件类型（CloudBMC、iBMC、LxBMC） |
+| plugin_type | string | 插件类型，由分类目录名决定 |
 | description | string | 插件描述 |
 
 #### sections 区块数组
