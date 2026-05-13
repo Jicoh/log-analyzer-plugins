@@ -655,21 +655,21 @@ html_path = renderer.render_to_file('path/to/plugin_result.json')
 - 支持所有Section类型渲染
 - 按插件分组展示
 
-## 独立CLI工具
+## CLI脚本集成
 
-插件系统提供独立的命令行入口，可用于脚本集成和外部调用。
+插件系统的CLI功能已集成到主程序，通过 `main.py analyze --format cli` 命令使用，可用于脚本集成和外部调用。
 
 ### 用法
 
 ```bash
 # 列出可用插件
-python plugins/cli_main.py plugin list
+python main.py plugin list
 
 # 执行分析（从stdin读取JSON格式的日志内容）
-echo '{"system.log": ["ERROR disk failure", "WARNING low memory"]}' | python plugins/cli_main.py analyze --plugin-id CloudBMC_00001
+echo '{"system.log": ["ERROR disk failure", "WARNING low memory"]}' | python main.py analyze --format cli --plugin-id CloudBMC_00001
 
 # 带额外参数的分析
-echo '{"system.log": ["ERROR disk failure"]}' | python plugins/cli_main.py analyze \
+echo '{"system.log": ["ERROR disk failure"]}' | python main.py analyze --format cli \
     --plugin-id CloudBMC_00001 \
     --task-name "巡检任务" \
     --bmc-ip "192.168.1.100" \

@@ -5,16 +5,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-# Run tests
-pytest tests/                          # Run all tests
-pytest tests/test_manager.py -v        # Run single test file with verbose output
-pytest tests/test_plugins.py -v        # Run plugin interface tests
-pytest tests/test_cli.py -v            # Run CLI integration tests
+# Run tests (tests have been moved to main project)
+pytest tests/test_plugin_manager.py -v     # PluginManager API tests
+pytest tests/test_plugin_interface.py -v    # Plugin interface tests
+pytest tests/test_plugin_cli.py -v          # CLI integration tests
+pytest tests/test_binary.py -v              # Binary file tests (need build first)
 
-# CLI usage (independent of main project)
-python plugins/cli_main.py plugin list
-echo '{"system.log": ["ERROR disk failure"]}' | python plugins/cli_main.py analyze --plugin-id example_00001
-echo '{"system.log": ["内容"]}' | python plugins/cli_main.py analyze --plugin-id CloudBMC_00001 --task-name "任务" --bmc-ip "192.168.1.1" --date "2026-05-09"
+# CLI usage (via main project)
+python main.py plugin list
+echo '{"system.log": ["ERROR disk failure"]}' | python main.py analyze --format cli --plugin-id example_00001
+echo '{"system.log": ["内容"]}' | python main.py analyze --format cli --plugin-id CloudBMC_00001 --task-name "任务" --bmc-ip "192.168.1.1" --date "2026-05-09"
 ```
 
 ## Architecture
@@ -114,10 +114,11 @@ CliResult(
 
 ## Testing
 
-Tests use pytest with fixtures. Key test files:
-- `test_manager.py` - PluginManager API tests
-- `test_plugins.py` - Plugin interface and return format tests
-- `test_cli.py` - CLI subprocess integration tests
+Tests have been moved to the main project's `tests/` directory:
+- `tests/test_plugin_manager.py` - PluginManager API tests
+- `tests/test_plugin_interface.py` - Plugin interface and return format tests
+- `tests/test_plugin_cli.py` - CLI integration tests (via `main.py analyze --format cli`)
+- `tests/test_binary.py` - Binary file tests (need build first)
 
 When adding new plugins, verify:
 1. Plugin ID format matches `{type}_\d{5}`
